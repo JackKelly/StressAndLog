@@ -8,9 +8,6 @@
 #ifndef SAL_H_
 #define SAL_H_
 
-#define NUM_CPUS 2
-#define IO 4
-#define VM 2
-
+void sigchld_handler(int signum);
 
 #endif /* SAL_H_ */

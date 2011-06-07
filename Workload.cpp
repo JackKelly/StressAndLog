@@ -26,6 +26,7 @@ void Workload::set_workload_config(struct Workload_config * _workload_config) {
     permutations *= (workload_config->io  ? (workload_config->io  + 1) : 1);
     permutations *= (workload_config->vm  ? (workload_config->vm  + 1) : 1);
     permutations *= (workload_config->hdd ? (workload_config->hdd + 1) : 1);
+    permutations--; // because we can't run 'stress' with all zeros
 
     cout << "Initialised workload_config.  Total permutations = " << permutations << endl;
 
@@ -134,10 +135,6 @@ void Workload::run_workload()
 
 void Workload::next()
 {
-    if (!fin) {
-        counter++;
-        run_workload();
-    }
 
     if (current_workload->hdd < workload_config->hdd) {
         current_workload->hdd++;
@@ -156,6 +153,12 @@ void Workload::next()
     } else {
         fin = true;
     }
+
+    if (!fin) {
+        counter++;
+        run_workload();
+    }
+
 }
 
 bool Workload::finished()
