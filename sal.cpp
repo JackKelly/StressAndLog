@@ -21,7 +21,7 @@ void sigchld_handler(int signum)
 }
 
 /**
- * get jiffie counts from /proc/stat
+ * get jiffie counts from /proc/stat for all CPUs
  *
  * @param cpus   number of cpu cores (including hyperthreading.
  *               so a dual-core CPU with hyperthreading enabled would
