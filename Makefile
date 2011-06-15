@@ -11,7 +11,7 @@ ifeq ($(origin CXX), undefined)
 endif
 
 ifeq ($(origin LDFLAGS), undefined)
-	LDFLAGS = -g -Wall -O0
+	LDFLAGS = -g -Wall -O0 -lserial
 endif
 
 ifeq ($(origin CXXFLAGS), undefined)
@@ -23,7 +23,7 @@ endif
 #################################################
 
 # COMMON OBJECT FILES
-COMMONOBJS = $(SRC)sal.o $(SRC)Workload.o
+COMMONOBJS = $(SRC)sal.o $(SRC)Workload.o $(SRC)WattsUp.o
 
 # COMPILATION RULES
 ###################
@@ -36,7 +36,7 @@ sal: $(COMMONOBJS)
 	$(CXX) $< -c $(CXXFLAGS) $(INC)
 	
 WattsUp: WattsUp.cpp WattsUp.h
-	g++ -Wall -g -o WattsUp WattsUp.cpp	-lserial
+	g++ -Wall -g -o WattsUp WattsUp.cpp	-lserial -DDEBUG
 
 # AUTOMATIC DEPENDENCY DETECTION
 # http://www.wlug.org.nz/MakefileHowto

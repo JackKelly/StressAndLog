@@ -8,6 +8,9 @@
 #ifndef WATTSUP_H_
 #define WATTSUP_H_
 
+// Maximum number of parameters returned by meter
+#define MAX_PARAMS 18
+
 #include <SerialStream.h>
 
 using namespace std;
@@ -16,7 +19,12 @@ class WattsUp {
 public:
     WattsUp();
     ~WattsUp();
+
+    /**
+     * @returns Current number of Watts*10
+     */
     int getWatts();
+
 private:
 
     /**
@@ -29,28 +37,14 @@ private:
      */
     void openDevice();
 
-    struct response {
-        char    command;
-        int     params,
-                watts,  // Tenths of Watts
-                volts,  // Tenths of Volts
-                mAmps,  // miliamps
-                wh,     // Tenths of Watt hours
-                cost,   // Tenths of cents or other currency
-                mokWh,
-                moCost,
-                maxWatts,
-                maxVolts,
-                maxAmps,
-                minWatts,
-                minVolts,
-                minAmps,
-                powerFactor,
-                dutyCycle,
-                powerCycle,
-                lineFrequency, // Tenths of Hz
-                va;     // Tenths of volta-amps
-    } wattsUpResponse;
+    struct pair {
+        string name;
+        int    value;
+    };
+
+    pair response[MAX_PARAMS+1];
+
+    void initialiseResponse();
 
     void getResponse();
 };

@@ -1,5 +1,6 @@
 #include "sal.h"
 #include "Workload.h"
+#include "WattsUp.h"
 #include <iostream>
 #include <cstdlib>
 #include <stdio.h>
@@ -53,14 +54,14 @@ void get_jiffies(const int cpus, fstream& stat, int work_jiffies[], int total_ji
        }
 
 #ifdef DEBUG
-        cout << "CPU" << cpu << " total_jiffies=" << total_jiffies[cpu] << ", work_jiffies=" << work_jiffies[cpu]  << endl;
+//        cout << "CPU" << cpu << " total_jiffies=" << total_jiffies[cpu] << ", work_jiffies=" << work_jiffies[cpu]  << endl;
 #endif
         stat.ignore(256, '\n'); // skip to start of next line
     }
 
 }
 
-void log(const int cpus, fstream& stat)
+void log(const int cpus, fstream& stat, WattsUp & wu)
 {
     int * work_jiffies1  = new int[cpus];
     int * total_jiffies1 = new int[cpus];
@@ -68,9 +69,11 @@ void log(const int cpus, fstream& stat)
     int * total_jiffies2 = new int[cpus];
 
     get_jiffies(cpus, stat, work_jiffies1, total_jiffies1);
-    sleep(1);
+    sleep(1);  // commented out while using wattsup because it'll make us wait a second
+    int watts = wu.getWatts();
     get_jiffies(cpus, stat, work_jiffies2, total_jiffies2);
 
+    cout << "Watts*10 = " << watts << endl;
     for (int cpu=0; cpu<cpus; cpu++) {
         cout << "cpu" << cpu << "=" << (double)(work_jiffies2[cpu]-work_jiffies1[cpu])/(total_jiffies2[cpu]-total_jiffies1[cpu]) << endl;
     }
@@ -111,7 +114,7 @@ int main(int argc, char* argv[])
     // TODO figure out where laptop gets power consumption
 
     /**
-     * Open /proc/stat (which gives us the CPU load
+     * Open /proc/stat (which gives us the CPU load)
      */
     fstream stat;
     stat.open("/proc/stat", fstream::in);
@@ -123,13 +126,17 @@ int main(int argc, char* argv[])
     /**
      * Kick off first workload
      */
+    cout << "Kicking off first workload..." << endl;
     Workload::next();
+
+    cout << "Instantiating WattsUp..." << endl;
+    WattsUp wu;
 
     /**
      * Log until workload finishes
      */
     while (!Workload::finished()) {
-        log(4, stat);
+        log(4, stat, wu);
     }
 
     cout << "parent terminating" << endl;

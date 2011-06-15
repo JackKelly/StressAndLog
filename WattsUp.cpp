@@ -16,6 +16,7 @@ using namespace std;
 WattsUp::WattsUp()
 {
     openDevice();
+    initialiseResponse();
 }
 
 WattsUp::~WattsUp()
@@ -23,10 +24,37 @@ WattsUp::~WattsUp()
     wattsUpSerialPort.Close();
 }
 
+void WattsUp::initialiseResponse()
+{
+    response[0].name = "params";
+    response[1].name = "watts*10";  // Tenths of Watts
+    response[2].name = "volts*10";  // Tenths of Volts
+    response[3].name = "miliamps";  // miliamps
+    response[4].name = "Watt hours";     // Tenths of Watt hours
+    response[5].name = "cost";   // Tenths of cents or other currency
+    response[6].name = "mo kWh";
+    response[7].name = "mo Cost";
+    response[8].name = "max Watts*10";
+    response[9].name = "max Volts*10";
+    response[10].name = "max miliAmps";
+    response[11].name = "min Watts*10";
+    response[12].name = "min Volts*10";
+    response[13].name = "min miliamps";
+    response[14].name = "powerFactor";
+    response[15].name = "dutyCycle";
+    response[16].name = "powerCycle";
+    response[17].name = "lineFrequency*10"; // Tenths of Hz
+    response[18].name = "va*10";            // Tenths of volt-amps
+
+    for (int i=0; i<MAX_PARAMS+1; i++) {
+        response[i].value = -1;
+    }
+}
+
 void WattsUp::openDevice()
 {
     wattsUpSerialPort.Open("/dev/ttyUSB0", std::ios_base::in | std::ios_base::out);
-    if ( ! wattsUpSerialPort.good()) {
+    if ( ! wattsUpSerialPort.good() ) {
         cerr << "Failed to open /dev/ttyUSB0" << endl;
         exit(1);
     }
@@ -71,66 +99,79 @@ void WattsUp::openDevice()
         exit(1);
     }
 
-    cout << "Serial baud rate = " << wattsUpSerialPort.BaudRate() << endl;
+    cout << "Successfully established a serial connection." << endl;
 
-//    wattsUpSerialPort = new LibSerial::SerialStream(
-//            "/dev/ttyUSB0"
-//            ,LibSerial::SerialStreamBuf::BAUD_115200
-//            ,LibSerial::SerialStreamBuf::CHAR_SIZE_8
-//            ,LibSerial::SerialStreamBuf::PARITY_NONE
-//            ,1
-//            ,LibSerial::SerialStreamBuf::FLOW_CONTROL_DEFAULT
-//    );
-
-//    wattsUpSerialPort.flush();
+    // send command to tell the meter to send data every second
+    cout << "Sending command \"#C,W,18,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1;\" to wattsup to tell it to send us every parameter" << endl;
+    wattsUpSerialPort << "#C,W,18,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1;" << endl;
+    wattsUpSerialPort.ignore(100,'\n');     // Skip empty line returned after command given
+    cout << "Sending command \"#L,W,3,E,1,1;\" to wattsup to set external logging interval" << endl;
+    wattsUpSerialPort << "#L,W,3,E,1,1;" << endl; // (external logging, interval 1 - the last number)
+    wattsUpSerialPort.ignore(100,'\n');     // Skip empty line returned after command given
 
 }
 
 int WattsUp::getWatts()
 {
-    // send command
-    wattsUpSerialPort << "#L,W,3,E,1,1;" << endl; // (external logging, interval 1 - the last number)
-
-    // Skip empty line returned after command given
-    wattsUpSerialPort.ignore(100,'\n');
-
     getResponse();
     // set 2-second timer
     // receive
-    return 0; // TODO remove
+
+    return response[1].value;
 }
 
 void WattsUp::getResponse()
 {
     //TODO 2 second timer
-//    const int BUFFER_SIZE = 32;
-//    char input_buffer[BUFFER_SIZE];
-//    wattsUpSerialPort.read(input_buffer, BUFFER_SIZE);
-//    cout << "response=" << input_buffer << endl;
 
-/*    char s;
-    wattsUpSerialPort >> s;
-    for (int i=0; i<1000; i++) {
-        cout << "=" << s;
-        wattsUpSerialPort >> s;
+    // Step through a line of text from the meter, separating off each number
+    char c;
+    int count=0;
+
+    // The first reading is the number of parameters.  We'll
+    // set this to 18 to start with
+    int & numParams = response[0].value = MAX_PARAMS;
+
+    c = wattsUpSerialPort.peek();
+    while (c != ';' && c != '\n' && c != '\0' && count<numParams) {
+        if (isdigit(c)) {
+            wattsUpSerialPort >> response[count++].value;
+            if (count==1 && numParams>MAX_PARAMS) {
+                cerr << "WattsUp meter has replied with " << numParams << " parameters, which is too many for this code to deal with." << endl;
+                exit(1);
+            }
+        } else if (c=='_') { // No reading available
+            response[count++].value = -1;
+            wattsUpSerialPort.ignore(1); // jump over the underscore
+        }
+
+#ifdef DEBUG
+//        if (count > 0) {
+//            cout << "Reading " << count << "/" << numParams << " = " << response[count-1].name << "=" << response[count-1].value << endl;
+//        }
+#endif
+        wattsUpSerialPort.ignore(1); // move 1 char along
+        c = wattsUpSerialPort.peek();
     }
-*/
 
-      char s[100];
-      for (int i=0; i<5; i++) {
-          wattsUpSerialPort.getline(s, 100);
-          cout << "Response= " << s << flush;
-      }
+    // If necessary, fill the remaining params with -1
+    if (numParams != MAX_PARAMS) {
+        for (int i = numParams; i<MAX_PARAMS; i++) {
+            response[i].value = -1;
+        }
+    }
+
+    wattsUpSerialPort.ignore(100,'\n');     // Skip empty line
 }
 
+/*
 int main()
 {
 
-    cout << "SerialStreamBuf::BAUD_DEFAULT==" << LibSerial::SerialStreamBuf::BAUD_DEFAULT << endl;
-    cout << "SerialStreamBuf::BAUD_INVALID==" << LibSerial::SerialStreamBuf::BAUD_INVALID << endl;
     WattsUp wu;
 
-    wu.getWatts();
+    cout << "Watts x 10 = " << wu.getWatts() << endl;;
 
     return 0;
 }
+*/
