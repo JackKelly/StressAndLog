@@ -8,7 +8,7 @@
 #ifndef WATTSUP_H_
 #define WATTSUP_H_
 
-#include <fstream>
+#include <SerialStream.h>
 
 using namespace std;
 
@@ -16,25 +16,43 @@ class WattsUp {
 public:
     WattsUp();
     ~WattsUp();
-    int connect();
-    float getWatts();
+    int getWatts();
 private:
 
     /**
      * for /dev/ttyUSB0
      */
-    fstream fd;
+    LibSerial::SerialStream wattsUpSerialPort;
 
     /**
-     * Port from wattsup.c
-     * TODO add lots of error-checking
+     * Open serial connection
      */
-    int open_device();
+    void openDevice();
 
-    /**
-     * Literal port from wattsup.c
-     */
-    int setup_serial_device();
+    struct response {
+        char    command;
+        int     params,
+                watts,  // Tenths of Watts
+                volts,  // Tenths of Volts
+                mAmps,  // miliamps
+                wh,     // Tenths of Watt hours
+                cost,   // Tenths of cents or other currency
+                mokWh,
+                moCost,
+                maxWatts,
+                maxVolts,
+                maxAmps,
+                minWatts,
+                minVolts,
+                minAmps,
+                powerFactor,
+                dutyCycle,
+                powerCycle,
+                lineFrequency, // Tenths of Hz
+                va;     // Tenths of volta-amps
+    } wattsUpResponse;
+
+    void getResponse();
 };
 
 #endif /* WATTSUP_H_ */

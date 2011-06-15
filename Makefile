@@ -28,13 +28,15 @@ COMMONOBJS = $(SRC)sal.o $(SRC)Workload.o
 # COMPILATION RULES
 ###################
 
-# AIRPLUG FOR RUNNING ON UBUNTU WITH THE NCURSES INTERFACE
 sal: $(COMMONOBJS)
 	$(CXX) -o $@ $(COMMONOBJS) $(CXXFLAGS) $(INC) $(LDFLAGS) -lm
 
 # GENERIIC COMPILATION RULE
 .C.o:
 	$(CXX) $< -c $(CXXFLAGS) $(INC)
+	
+WattsUp: WattsUp.cpp WattsUp.h
+	g++ -Wall -g -o WattsUp WattsUp.cpp	-lserial
 
 # AUTOMATIC DEPENDENCY DETECTION
 # http://www.wlug.org.nz/MakefileHowto

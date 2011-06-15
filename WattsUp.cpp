@@ -1,59 +1,136 @@
 /*
- * WattsUpWrapper.cpp
+ * WattsUp.cpp
  *
  *  Created on: 13 Jun 2011
  *      Author: jack
  */
 
-#include <fstream>
+#include <SerialStream.h>
 #include <cstdlib>
-#include <termios.h>
+#include <iostream>
+#include <string>
 #include "WattsUp.h"
 
 using namespace std;
 
 WattsUp::WattsUp()
 {
-    open_device();
+    openDevice();
 }
 
 WattsUp::~WattsUp()
 {
-    fd.close();
+    wattsUpSerialPort.Close();
 }
 
-int WattsUp::open_device()
+void WattsUp::openDevice()
 {
-    //TODO add the error checking in the open_device function in wattsup.c
-    fd.open ("/dev/ttyUSB0", fstream::in | fstream::out);
-    if (fd.fail()) {
+    wattsUpSerialPort.Open("/dev/ttyUSB0", std::ios_base::in | std::ios_base::out);
+    if ( ! wattsUpSerialPort.good()) {
         cerr << "Failed to open /dev/ttyUSB0" << endl;
         exit(1);
     }
+
+    /* DATA FORMAT from WattsUp API doc:
+     * https://www.wattsupmeters.com/secure/downloads/CommunicationsProtocol090824.pdf
+     * RS232; 115200 baud, 8 data bits, 1 stop bit, no parity
+     * Data consists of standard ASCII chars
+     * Numbers represented as ASCII strings
+     * Packets start with "#" and end with ";"
+     */
+
+    using namespace LibSerial;
+
+    wattsUpSerialPort.SetBaudRate( SerialStreamBuf::BAUD_115200 );
+    if ( ! wattsUpSerialPort.good() ) {
+        cerr << "Failed to set baud rate" << endl;
+        exit(1);
+    }
+
+    wattsUpSerialPort.SetCharSize( SerialStreamBuf::CHAR_SIZE_8 );
+    if ( ! wattsUpSerialPort.good() ) {
+        cerr << "Failed to set Char Size" << endl;
+        exit(1);
+    }
+
+    wattsUpSerialPort.SetNumOfStopBits( 1 );
+    if ( ! wattsUpSerialPort.good() ) {
+        cerr << "Failed to set stop bits" << endl;
+        exit(1);
+    }
+
+    wattsUpSerialPort.SetParity( SerialStreamBuf::PARITY_NONE );
+    if ( ! wattsUpSerialPort.good() ) {
+        cerr << "Failed to set parity" << endl;
+        exit(1);
+    }
+
+    wattsUpSerialPort.SetFlowControl( SerialStreamBuf::FLOW_CONTROL_DEFAULT );
+    if ( ! wattsUpSerialPort.good() ) {
+        cerr << "Failed to set flow control" << endl;
+        exit(1);
+    }
+
+    cout << "Serial baud rate = " << wattsUpSerialPort.BaudRate() << endl;
+
+//    wattsUpSerialPort = new LibSerial::SerialStream(
+//            "/dev/ttyUSB0"
+//            ,LibSerial::SerialStreamBuf::BAUD_115200
+//            ,LibSerial::SerialStreamBuf::CHAR_SIZE_8
+//            ,LibSerial::SerialStreamBuf::PARITY_NONE
+//            ,1
+//            ,LibSerial::SerialStreamBuf::FLOW_CONTROL_DEFAULT
+//    );
+
+//    wattsUpSerialPort.flush();
+
 }
 
-int WattsUp::setup_serial_device()
+int WattsUp::getWatts()
 {
-    struct termios t;
-    int ret;
+    // send command
+    wattsUpSerialPort << "#L,W,3,E,1,1;" << endl; // (external logging, interval 1 - the last number)
 
-    ret = tcgetattr(fd. , &t);
-    if (ret)
-            return ret;
+    // Skip empty line returned after command given
+    wattsUpSerialPort.ignore(100,'\n');
 
-    cfmakeraw(&t);
-    cfsetispeed(&t, B115200);
-    cfsetospeed(&t, B115200);
-    tcflush(fd, TCIFLUSH);
+    getResponse();
+    // set 2-second timer
+    // receive
+    return 0; // TODO remove
+}
 
-    t.c_iflag |= IGNPAR;
-    t.c_cflag &= ~CSTOPB;
-    ret = tcsetattr(dev_fd, TCSANOW, &t);
+void WattsUp::getResponse()
+{
+    //TODO 2 second timer
+//    const int BUFFER_SIZE = 32;
+//    char input_buffer[BUFFER_SIZE];
+//    wattsUpSerialPort.read(input_buffer, BUFFER_SIZE);
+//    cout << "response=" << input_buffer << endl;
 
-    if (ret) {
-            perr("setting terminal attributes");
-            return ret;
+/*    char s;
+    wattsUpSerialPort >> s;
+    for (int i=0; i<1000; i++) {
+        cout << "=" << s;
+        wattsUpSerialPort >> s;
     }
+*/
+
+      char s[100];
+      for (int i=0; i<5; i++) {
+          wattsUpSerialPort.getline(s, 100);
+          cout << "Response= " << s << flush;
+      }
+}
+
+int main()
+{
+
+    cout << "SerialStreamBuf::BAUD_DEFAULT==" << LibSerial::SerialStreamBuf::BAUD_DEFAULT << endl;
+    cout << "SerialStreamBuf::BAUD_INVALID==" << LibSerial::SerialStreamBuf::BAUD_INVALID << endl;
+    WattsUp wu;
+
+    wu.getWatts();
 
     return 0;
 }
