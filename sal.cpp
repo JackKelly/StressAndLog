@@ -10,6 +10,9 @@
 #include <cstring>
 #include <unistd.h> // sleep()
 #include <time.h>   // clock()
+#include <string>
+#include <sstream>
+#include <iomanip>
 
 using namespace std;
 
@@ -61,12 +64,33 @@ void get_jiffies(const int cpus, fstream& stat, int work_jiffies[], int total_ji
 
 }
 
+string generate_filename()
+{
+    time_t rawtime = time(NULL); // get UNIX time
+    struct tm * timeinfo = localtime(&rawtime); // get broken-down time
+    stringstream ss (stringstream::in | stringstream::out);
+    ss.fill('0'); // leading zero
+
+    ss << setw(2) << 1+timeinfo->tm_mon << "-"
+       << setw(2) << timeinfo->tm_mday  << "-"
+       << setw(2) << timeinfo->tm_hour  << "-"
+       << setw(2) << timeinfo->tm_min   << "-"
+       << setw(2) << timeinfo->tm_sec;
+
+    return ss.str();
+}
+
 void log(const int cpus, fstream& stat, WattsUp & wu)
 {
+
+
     int * work_jiffies1  = new int[cpus];
     int * total_jiffies1 = new int[cpus];
     int * work_jiffies2  = new int[cpus];
     int * total_jiffies2 = new int[cpus];
+
+    string filename_base = generate_filename();
+    cout << "filename = " << filename_base << endl;
 
     get_jiffies(cpus, stat, work_jiffies1, total_jiffies1);
     sleep(1);  // commented out while using wattsup because it'll make us wait a second

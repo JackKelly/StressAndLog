@@ -56,4 +56,4 @@ DEPS := $(patsubst %.o,%.d,$(COMMONOBJS))
 #################################################
 
 clean:
-	rm -rf *.o
+	rm -rf *.o *.d
