@@ -163,15 +163,3 @@ void WattsUp::getResponse()
 
     wattsUpSerialPort.ignore(100,'\n');     // Skip empty line
 }
-
-/*
-int main()
-{
-
-    WattsUp wu;
-
-    cout << "Watts x 10 = " << wu.getWatts() << endl;;
-
-    return 0;
-}
-*/

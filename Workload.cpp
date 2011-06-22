@@ -9,6 +9,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstdio>
+#include <fstream>
+#include <cstring>
+#include <time.h>
 
 using namespace std;
 
@@ -17,8 +20,9 @@ int Workload::permutations;
 bool Workload::fin = false;
 struct Workload_config * Workload::workload_config  = 0;
 struct Workload_config * Workload::current_workload = 0;
+fstream Workload::workload_log;
 
-void Workload::set_workload_config(struct Workload_config * _workload_config) {
+int* Workload::set_workload_config(struct Workload_config * _workload_config) {
     workload_config = _workload_config;
 
     // Calculate how many different permutations we're going to run
@@ -34,14 +38,39 @@ void Workload::set_workload_config(struct Workload_config * _workload_config) {
     cout << "Estimated runtime = " << runtime/60   << "mins" << endl;
 
     // Now initialise 'current_workload' to all zeros
-    current_workload = new Workload_config(0,0,0,0,0,0,"");
+    current_workload = new Workload_config(0,0,0,0,0,0,"",time(NULL));
 
     // Set the constant values in current_config
     current_workload->vm_bytes = workload_config->vm_bytes;
     current_workload->timeout  = workload_config->timeout;
+
+    // Create log file
+    string filename = "workload-log-";
+    filename.append( workload_config->filename_base );
+    filename.append( ".txt" );
+    workload_log.open( filename.c_str(), fstream::out | fstream::app);
+    if ( ! workload_log.good() ) {
+        cerr << "Failed to open workload log." << endl;
+        exit(1);
+    }
+
+    // Create column headers
+    workload_log << "workload#" << ","
+                 << "time"  << ","
+                 << "cpu" << ","
+                 << "io" << ","
+                 << "vm" << ","
+                 << "vm_bytes" << ","
+                 << "hdd" << ","
+                 << "timeout"
+                 << endl;
+    workload_log.flush();
+
+    return &counter; // return the address of the counter so we can keep track
+
 }
 
-char * Workload::i_to_c(const int i, const bool s)
+char const * Workload::i_to_c(const int i, const bool s)
 {
     char * string = new char[(s ? 5 : 4)];
     string[0] = ((i/100)%10) + '0';
@@ -106,6 +135,18 @@ void Workload::run_workload()
             }
             argv[argv_index++] = (char *)0;
 
+            // Log
+            workload_log << counter << ","
+                         << time(NULL)-workload_config->start_time << ","
+                         << current_workload->cpu << ","
+                         << current_workload->io << ","
+                         << current_workload->vm << ","
+                         << current_workload->vm_bytes << ","
+                         << current_workload->hdd << ","
+                         << current_workload->timeout
+                         << endl;
+            workload_log.flush();
+
             // Print out the argv[] string
             argv_index=0;
             while(argv[argv_index]) {
@@ -163,6 +204,9 @@ void Workload::next()
 
 bool Workload::finished()
 {
+    if (fin) {
+        workload_log.close();
+    }
     return fin;
 }
 

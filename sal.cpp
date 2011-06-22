@@ -39,11 +39,11 @@ void sigchld_handler(int signum)
 void get_jiffies(const int cpus, fstream& stat, int work_jiffies[], int total_jiffies[])
 {
     stat.seekg(0, ios::beg); // go back to start of file
-    stat.ignore(256, '\n'); // skip first line
+//    stat.ignore(256, '\n'); // skip first line
 
     // Read through each cpu line
     int  column;
-    for (int cpu=0; cpu<cpus; cpu++) {
+    for (int cpu=0; cpu<(cpus+1); cpu++) {
         stat.ignore(4, ' '); // skip over the "cpu0" column
         total_jiffies[cpu] = work_jiffies[cpu] = 0; // reset
 
@@ -51,7 +51,7 @@ void get_jiffies(const int cpus, fstream& stat, int work_jiffies[], int total_ji
         for (int col=0; col<7; col++) {
             stat >> column;
             total_jiffies[cpu] += column;
-            if (col < 4) {
+            if (col < 3) {
                 work_jiffies[cpu] += column;
             }
        }
@@ -80,23 +80,53 @@ string generate_filename()
     return ss.str();
 }
 
-void log(const int cpus, fstream& stat, WattsUp & wu)
+
+/**
+* @param cpus   number of cpu cores (including hyperthreading.
+*               so a dual-core CPU with hyperthreading enabled would
+*               have cpus=4
+*
+* @param stat   the fstream for /proc/stat
+* @param wu     watts up object
+* @param workload_number a pointer to a variable storing the current workload number
+* @param log_file  opened log file
+*
+*/
+void log_line(const int cpus, fstream& stat, WattsUp& wu, int * workload_number, time_t start_time, fstream& log_file)
 {
-    int * work_jiffies1  = new int[cpus];
-    int * total_jiffies1 = new int[cpus];
-    int * work_jiffies2  = new int[cpus];
-    int * total_jiffies2 = new int[cpus];
+    int cpu_utilisation;
+    int * work_jiffies1  = new int[cpus+1]; // +1 because we need an extra entry for the average stats
+    int * total_jiffies1 = new int[cpus+1];
+    int * work_jiffies2  = new int[cpus+1];
+    int * total_jiffies2 = new int[cpus+1];
 
     get_jiffies(cpus, stat, work_jiffies1, total_jiffies1);
-    sleep(1);  // commented out while using wattsup because it'll make us wait a second
+    sleep(1);  // needed else we don't get Watts readings
     int watts = wu.getWatts();
     get_jiffies(cpus, stat, work_jiffies2, total_jiffies2);
 
-    cout << "Watts*10 = " << watts << endl;
-    for (int cpu=0; cpu<cpus; cpu++) {
-        cout << "cpu" << cpu << "=" << (double)(work_jiffies2[cpu]-work_jiffies1[cpu])/(total_jiffies2[cpu]-total_jiffies1[cpu]) << endl;
-    }
+    cout << " wj1[0]=" << work_jiffies1[0]
+         << " tj1[0]=" << total_jiffies1[0]
+         << " wj2[0]=" << work_jiffies2[0]
+         << " tj2[0]=" << total_jiffies2[0] << endl;
 
+    cout.fill('0');
+    log_file.fill('0');
+    cout << "Time=" << setw(4) << time(NULL)-start_time << ",Workload=" << setw(3) << *workload_number << ",deciWatts=" << setw(4) << watts << ",";
+    log_file        << setw(4) << time(NULL)-start_time << ","          << setw(3) << *workload_number << ","           << setw(4) << watts << ",";
+
+    for (int cpu=0; cpu<(cpus+1); cpu++) {
+        cpu_utilisation = 100 * ((double)(work_jiffies2[cpu]-work_jiffies1[cpu])/(total_jiffies2[cpu]-total_jiffies1[cpu]));
+        if (cpu==0) {
+            cout     << "CPUav=" << setw(3) << cpu_utilisation;
+            log_file <<             setw(3) << cpu_utilisation;
+        } else {
+            cout     << "," << "CPU" << setw(2) << cpu << "=" << setw(3) << cpu_utilisation;
+            log_file << "," <<          setw(2) << cpu << "=" << setw(3) << cpu_utilisation;
+        }
+    }
+    cout     << endl;
+    log_file << endl;
 }
 
 int main(int argc, char* argv[])
@@ -109,6 +139,17 @@ int main(int argc, char* argv[])
     // Generate base filename for log files
     string filename_base = generate_filename();
     cout << "Base filename = " << filename_base << endl;
+    string filename = "stress-log-";
+    filename.append( filename_base );
+    filename.append( ".csv" );
+    fstream log_file;
+    log_file.open( filename.c_str(), fstream::out | fstream::app );
+    if ( ! log_file.good() ) {
+        cerr << "Cannot open " << filename << endl;
+        exit(1);
+    }
+
+    time_t start_time = time(NULL);
 
     /* Set a signal handler for SIGCHLD (which we receive
      *  when a child (i.e. "stress") terminates
@@ -131,7 +172,9 @@ int main(int argc, char* argv[])
     workload_config.vm_bytes=128;
     workload_config.hdd=0;
     workload_config.timeout=10;
-    Workload::set_workload_config(&workload_config);
+    workload_config.filename_base = filename_base;
+    workload_config.start_time = start_time;
+    int * workload_number = Workload::set_workload_config(&workload_config);
 
     // TODO find the number of physical CPUs http://software.intel.com/en-us/articles/intel-64-architecture-processor-topology-enumeration/
     // TODO figure out where laptop gets power consumption
@@ -146,12 +189,6 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    /**
-     * Kick off first workload
-     */
-    cout << "Kicking off first workload..." << endl;
-    Workload::next();
-
     cout << "Instantiating WattsUp..." << endl;
     WattsUp wu;
 
@@ -159,11 +196,23 @@ int main(int argc, char* argv[])
      * Log until workload finishes
      */
     while (!Workload::finished()) {
-        log(4, stat, wu);
+
+        log_line(4, stat, wu, workload_number, start_time, log_file);
+        log_file.flush();
+
+        if ((time(NULL)-start_time) == 10) {
+            /**
+             * Kick off first workload
+             */
+            cout << "Kicking off first workload..." << endl;
+            Workload::next();
+        }
+
     }
 
     cout << "parent terminating" << endl;
 
+    log_file.close();
     stat.close(); // close /proc/stat
 
     return 0;
