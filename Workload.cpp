@@ -34,7 +34,7 @@ void Workload::set_workload_config(struct Workload_config * _workload_config) {
     cout << "Estimated runtime = " << runtime/60   << "mins" << endl;
 
     // Now initialise 'current_workload' to all zeros
-    current_workload = new Workload_config(0,0,0,0,0,0);
+    current_workload = new Workload_config(0,0,0,0,0,0,"");
 
     // Set the constant values in current_config
     current_workload->vm_bytes = workload_config->vm_bytes;
@@ -77,7 +77,7 @@ void Workload::run_workload()
             argc += (current_workload->hdd ? 2 : 0);
             argc += (current_workload->timeout ? 2 : 0);
 
-            char * argv[argc];
+            char const * argv[argc];
             int argv_index = 0;
             argv[argv_index++] =  "stress";
             if (current_workload->cpu) {
@@ -117,7 +117,7 @@ void Workload::run_workload()
              * We're a child process so replace our image with 'stress'
              * execvp searches for the program in our path and passes our arguments
              */
-            execvp("stress", argv);
+            execvp("stress", (char* const*)argv);
 
             // Check for errors and handle
             perror("execvp"); /* execvp() only returns on error */
@@ -164,4 +164,11 @@ void Workload::next()
 bool Workload::finished()
 {
     return fin;
+}
+
+ostream& operator<<(ostream& o, const Workload_config& wc)
+{
+    o << "cpu=" << wc.cpu << " io=" << wc.io << " vm=" << wc.vm << " vm_bytes=" << wc.vm_bytes
+            << " hdd=" << wc.hdd << " timeout=" << wc.timeout;
+    return o;
 }

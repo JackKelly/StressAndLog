@@ -9,22 +9,19 @@
 #define WORKLOAD_H_
 
 #include <iostream>
+#include <string>
 using namespace std;
 
 struct Workload_config {
     int cpu, io, vm, vm_bytes, hdd, timeout;
+    string base_filename;
 
     Workload_config() {}
     Workload_config(const int _cpu, const int _io, const int _vm,
-                    const int _vm_bytes, const int _hdd, const int _timeout) :
-        cpu(_cpu), io(_io), vm(_vm), vm_bytes(_vm_bytes), hdd(_hdd), timeout(_timeout) {}
+                    const int _vm_bytes, const int _hdd, const int _timeout, const string _base_filename) :
+        cpu(_cpu), io(_io), vm(_vm), vm_bytes(_vm_bytes), hdd(_hdd), timeout(_timeout), base_filename(_base_filename) {}
 
-    friend ostream& operator<<(ostream& o, const Workload_config& wc)
-    {
-        o << "cpu=" << wc.cpu << " io=" << wc.io << " vm=" << wc.vm << " vm_bytes=" << wc.vm_bytes
-                << " hdd=" << wc.hdd << " timeout=" << wc.timeout;
-        return o;
-    }
+    friend ostream& operator<<(ostream& o, const Workload_config& wc);
 };
 
 class Workload

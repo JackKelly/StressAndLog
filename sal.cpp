@@ -82,15 +82,10 @@ string generate_filename()
 
 void log(const int cpus, fstream& stat, WattsUp & wu)
 {
-
-
     int * work_jiffies1  = new int[cpus];
     int * total_jiffies1 = new int[cpus];
     int * work_jiffies2  = new int[cpus];
     int * total_jiffies2 = new int[cpus];
-
-    string filename_base = generate_filename();
-    cout << "filename = " << filename_base << endl;
 
     get_jiffies(cpus, stat, work_jiffies1, total_jiffies1);
     sleep(1);  // commented out while using wattsup because it'll make us wait a second
@@ -110,6 +105,10 @@ int main(int argc, char* argv[])
     // start logging power consumption
     // start logging system workload
     // fire off a sequence of 'stress' workloads
+
+    // Generate base filename for log files
+    string filename_base = generate_filename();
+    cout << "Base filename = " << filename_base << endl;
 
     /* Set a signal handler for SIGCHLD (which we receive
      *  when a child (i.e. "stress") terminates
