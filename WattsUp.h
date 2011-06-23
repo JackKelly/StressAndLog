@@ -20,9 +20,6 @@ public:
     WattsUp();
     ~WattsUp();
 
-    /**
-     * @returns Current number of Watts*10
-     */
     int getWatts();
 
 private:

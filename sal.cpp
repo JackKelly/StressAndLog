@@ -24,27 +24,14 @@ void sigchld_handler(int signum)
     Workload::next();
 }
 
-/**
- * get jiffie counts from /proc/stat for all CPUs
- *
- * @param cpus   number of cpu cores (including hyperthreading.
- *               so a dual-core CPU with hyperthreading enabled would
- *               have cpus=4
- *
- * @param stat   the fstream for /proc/stat
- *
- * @param work_jiffies  return array with size = cpus
- * @param total_jiffied return array with size = cpus
- */
 void get_jiffies(const int cpus, fstream& stat, int work_jiffies[], int total_jiffies[])
 {
-    stat.seekg(0, ios::beg); // go back to start of file
-//    stat.ignore(256, '\n'); // skip first line
+    stat.seekg(0, ios::beg); /* go back to start of file */
 
-    // Read through each cpu line
+    /* Read through each cpu line */
     int  column;
     for (int cpu=0; cpu<(cpus+1); cpu++) {
-        stat.ignore(4, ' '); // skip over the "cpu0" column
+        stat.ignore(4, ' '); // skip over the "cpu0" column TODO: try without the 2nd argument - I don't think it's necessary
         total_jiffies[cpu] = work_jiffies[cpu] = 0; // reset
 
         // get each column
@@ -54,23 +41,20 @@ void get_jiffies(const int cpus, fstream& stat, int work_jiffies[], int total_ji
             if (col < 3) {
                 work_jiffies[cpu] += column;
             }
-       }
-
-#ifdef DEBUG
-//        cout << "CPU" << cpu << " total_jiffies=" << total_jiffies[cpu] << ", work_jiffies=" << work_jiffies[cpu]  << endl;
-#endif
+        }
         stat.ignore(256, '\n'); // skip to start of next line
     }
-
 }
 
 string generate_filename()
 {
     time_t rawtime = time(NULL); // get UNIX time
     struct tm * timeinfo = localtime(&rawtime); // get broken-down time
+
+    // Now take the time and date info in timeinfo and format it
+    // as a string in the way we want it
     stringstream ss (stringstream::in | stringstream::out);
     ss.fill('0'); // leading zero
-
     ss << setw(2) << 1+timeinfo->tm_mon << "-"
        << setw(2) << timeinfo->tm_mday  << "-"
        << setw(2) << timeinfo->tm_hour  << "-"
@@ -80,18 +64,6 @@ string generate_filename()
     return ss.str();
 }
 
-
-/**
-* @param cpus   number of cpu cores (including hyperthreading.
-*               so a dual-core CPU with hyperthreading enabled would
-*               have cpus=4
-*
-* @param stat   the fstream for /proc/stat
-* @param wu     watts up object
-* @param workload_number a pointer to a variable storing the current workload number
-* @param log_file  opened log file
-*
-*/
 void log_line(const int cpus, fstream& stat, WattsUp& wu, int * workload_number, time_t start_time, fstream& log_file)
 {
     int cpu_utilisation;
@@ -104,11 +76,6 @@ void log_line(const int cpus, fstream& stat, WattsUp& wu, int * workload_number,
     sleep(1);  // needed else we don't get Watts readings
     int watts = wu.getWatts();
     get_jiffies(cpus, stat, work_jiffies2, total_jiffies2);
-
-    cout << " wj1[0]=" << work_jiffies1[0]
-         << " tj1[0]=" << total_jiffies1[0]
-         << " wj2[0]=" << work_jiffies2[0]
-         << " tj2[0]=" << total_jiffies2[0] << endl;
 
     cout.fill('0');
     log_file.fill('0');
@@ -136,13 +103,12 @@ int main(int argc, char* argv[])
     // start logging system workload
     // fire off a sequence of 'stress' workloads
 
-    // Generate base filename for log files
+    fstream log_file; ///< Generate base filename for log files
     string filename_base = generate_filename();
     cout << "Base filename = " << filename_base << endl;
     string filename = "stress-log-";
     filename.append( filename_base );
     filename.append( ".csv" );
-    fstream log_file;
     log_file.open( filename.c_str(), fstream::out | fstream::app );
     if ( ! log_file.good() ) {
         cerr << "Cannot open " << filename << endl;
@@ -166,9 +132,9 @@ int main(int argc, char* argv[])
      * Set workload config
      */
     struct Workload_config workload_config;
-    workload_config.cpu=2;
-    workload_config.io=1;
-    workload_config.vm=1;
+    workload_config.cpu=1;
+    workload_config.io=0;
+    workload_config.vm=0;
     workload_config.vm_bytes=128;
     workload_config.hdd=0;
     workload_config.timeout=10;
@@ -179,10 +145,7 @@ int main(int argc, char* argv[])
     // TODO find the number of physical CPUs http://software.intel.com/en-us/articles/intel-64-architecture-processor-topology-enumeration/
     // TODO figure out where laptop gets power consumption
 
-    /**
-     * Open /proc/stat (which gives us the CPU load)
-     */
-    fstream stat;
+    fstream stat; ///< Open /proc/stat (which gives us the CPU load)
     stat.open("/proc/stat", fstream::in);
     if (stat.fail()) {
         cerr << "Error: failed to open /proc/stat" << endl;
@@ -192,22 +155,17 @@ int main(int argc, char* argv[])
     cout << "Instantiating WattsUp..." << endl;
     WattsUp wu;
 
-    /**
-     * Log until workload finishes
-     */
+    /* Log until workload finishes */
     while (!Workload::finished()) {
 
         log_line(4, stat, wu, workload_number, start_time, log_file);
         log_file.flush();
 
         if ((time(NULL)-start_time) == 10) {
-            /**
-             * Kick off first workload
-             */
+            /* Kick off first workload after 10 seconds */
             cout << "Kicking off first workload..." << endl;
             Workload::next();
         }
-
     }
 
     cout << "parent terminating" << endl;

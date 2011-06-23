@@ -22,6 +22,13 @@ struct Workload_config * Workload::workload_config  = 0;
 struct Workload_config * Workload::current_workload = 0;
 fstream Workload::workload_log;
 
+/**
+ * Set the workload config options
+ * @param _workload_config - a pointer to a Workload_config structure
+ *                           specifying the set of jobs we want to run
+ * @returns the address of the counter (which keeps track of which job we're currently running.
+ *                           This is useful for the log
+ */
 int* Workload::set_workload_config(struct Workload_config * _workload_config) {
     workload_config = _workload_config;
 
@@ -67,9 +74,14 @@ int* Workload::set_workload_config(struct Workload_config * _workload_config) {
     workload_log.flush();
 
     return &counter; // return the address of the counter so we can keep track
-
 }
 
+/**
+ * Convert from an integer to a char * string
+ * @param i = the integer to convert
+ * @param s = whether or not we want an 's' at the end
+ * @returns = the const char * string encoding the number
+ */
 char const * Workload::i_to_c(const int i, const bool s)
 {
     char * string = new char[(s ? 5 : 4)];
@@ -83,6 +95,10 @@ char const * Workload::i_to_c(const int i, const bool s)
     return string;
 }
 
+/**
+ * Run a workload.  The main responsibility of this function is to prepare the arguments for
+ * the command-line utility "stress" and to run "stress"
+ */
 void Workload::run_workload()
 {
     cout << "Running workload #" << counter << "/" << permutations << ": "
@@ -94,10 +110,8 @@ void Workload::run_workload()
     if (childpid >= 0) { // fork succeeded
         if (childpid == 0) { // child
 
-            /**
-             * Figure out how many arguments we're passing to 'stress'
-             * It turns out 'stress' doesn't like being given '0' as an argument
-             */
+            /* Figure out how many arguments we're passing to 'stress'
+             * It turns out 'stress' doesn't like being given '0' as an argument */
             int argc = 2;
             argc += (current_workload->cpu ? 2 : 0);
             argc += (current_workload->io  ? 2 : 0);
@@ -106,6 +120,7 @@ void Workload::run_workload()
             argc += (current_workload->hdd ? 2 : 0);
             argc += (current_workload->timeout ? 2 : 0);
 
+            /* Prepare the arguments for passing to "stress"  */
             char const * argv[argc];
             int argv_index = 0;
             argv[argv_index++] =  "stress";
@@ -135,7 +150,7 @@ void Workload::run_workload()
             }
             argv[argv_index++] = (char *)0;
 
-            // Log
+            // Output a line to log
             workload_log << counter << ","
                          << time(NULL)-workload_config->start_time << ","
                          << current_workload->cpu << ","
@@ -146,6 +161,8 @@ void Workload::run_workload()
                          << current_workload->timeout
                          << endl;
             workload_log.flush();
+            /* Flush after each line so we get a meaningful log
+             * even if the process is terminated prematurely */
 
             // Print out the argv[] string
             argv_index=0;
@@ -174,6 +191,11 @@ void Workload::run_workload()
     }
 }
 
+/**
+ * Run the next workload
+ * The main task here is to increment the current_workload structure ready
+ * for passing to run_workload
+ */
 void Workload::next()
 {
 
@@ -193,20 +215,17 @@ void Workload::next()
         current_workload->cpu++;
     } else {
         fin = true;
+        workload_log.close();
     }
 
-    if (!fin) {
+    if ( ! fin ) {
         counter++;
         run_workload();
     }
-
 }
 
 bool Workload::finished()
 {
-    if (fin) {
-        workload_log.close();
-    }
     return fin;
 }
 

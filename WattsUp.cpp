@@ -111,6 +111,11 @@ void WattsUp::openDevice()
 
 }
 
+/**
+ * Get the current number of watts
+ *
+ * @returns Current number of Watts*10
+ */
 int WattsUp::getWatts()
 {
     getResponse();
