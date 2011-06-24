@@ -30,7 +30,9 @@ Workload::Workload() :
         fin(false),
         workload_config(NULL),
         current_workload(NULL)
-{}
+{
+    cout << "Workload constructor" << endl;
+    }
 
 /**
  * Set the workload config options

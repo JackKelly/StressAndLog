@@ -13,6 +13,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <fstream>
+#include "Singleton.h"
 
 using namespace std;
 
@@ -41,7 +42,7 @@ struct Workload_config
  *     run "stress"
  *     keep track of which workloads we've run so far and which we still need to run
  */
-class Workload
+class Workload : public Singleton
 {
 public:
     static Workload * get_instance();
@@ -54,8 +55,8 @@ public:
     bool finished();
 protected:
     Workload();
-    Workload(const Workload&);
-    Workload & operator=(const Workload&);
+//    Workload(const Workload&);
+//    Workload & operator=(const Workload&);
 private:
     static Workload * instance;
     int counter;
