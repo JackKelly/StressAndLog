@@ -23,7 +23,7 @@ endif
 #################################################
 
 # COMMON OBJECT FILES
-COMMONOBJS = $(SRC)sal.o $(SRC)Workload.o $(SRC)WattsUp.o
+COMMONOBJS = $(SRC)sal.o $(SRC)Workload.o $(SRC)WattsUp.o $(SRC)Diskstats.o
 
 # COMPILATION RULES
 ###################

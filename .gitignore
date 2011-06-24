@@ -3,3 +3,5 @@ sal
 *.o
 .cproject
 .project
+*.txt
+*.csv

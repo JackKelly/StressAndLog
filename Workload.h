@@ -22,7 +22,7 @@ struct Workload_config {
     time_t start_time;
 
     Workload_config() {}
-    Workload_config(const int _cpu, const int _io, const int _vm,
+    explicit Workload_config(const int _cpu, const int _io, const int _vm,
                     const int _vm_bytes, const int _hdd, const int _timeout, const string _filename_base, const time_t _start_time) :
         cpu(_cpu), io(_io), vm(_vm), vm_bytes(_vm_bytes), hdd(_hdd), timeout(_timeout), filename_base(_filename_base), start_time(_start_time) {}
 
@@ -38,6 +38,8 @@ public:
     static void next();
     static int* set_workload_config(struct Workload_config * );
     static bool finished();
+protected:
+    Workload();
 private:
     static int counter;
     static int permutations;

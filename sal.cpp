@@ -24,9 +24,14 @@ void sigchld_handler(int signum)
     Workload::next();
 }
 
-void get_jiffies(const int cpus, fstream& stat, int work_jiffies[], int total_jiffies[])
+void get_jiffies(const int cpus, int work_jiffies[], int total_jiffies[])
 {
-    stat.seekg(0, ios::beg); /* go back to start of file */
+    fstream stat;
+    stat.open("/proc/stat", fstream::in);
+    if ( ! stat.good() ) {
+        cerr << "Failed to open /proc/stat." << endl;
+        exit(1);
+    }
 
     /* Read through each cpu line */
     int  column;
@@ -44,6 +49,8 @@ void get_jiffies(const int cpus, fstream& stat, int work_jiffies[], int total_ji
         }
         stat.ignore(256, '\n'); // skip to start of next line
     }
+
+    stat.close();
 }
 
 string generate_filename()
@@ -64,18 +71,23 @@ string generate_filename()
     return ss.str();
 }
 
-void log_line(const int cpus, fstream& stat, WattsUp& wu, int * workload_number, time_t start_time, fstream& log_file)
+void log_line(const int cpus, WattsUp& wu, int * workload_number, time_t start_time, fstream& log_file)
 {
-    int cpu_utilisation;
+    int cpu_utilisation, disk_utilisation;
+    const int NUM_DISKS = 1;
+    int * disk_stats1    = new int[NUM_DISKS];
+    int * disk_stats2    = new int[NUM_DISKS];
     int * work_jiffies1  = new int[cpus+1]; // +1 because we need an extra entry for the average stats
     int * total_jiffies1 = new int[cpus+1];
     int * work_jiffies2  = new int[cpus+1];
     int * total_jiffies2 = new int[cpus+1];
 
-    get_jiffies(cpus, stat, work_jiffies1, total_jiffies1);
+    get_jiffies(cpus, work_jiffies1, total_jiffies1);
+    get_diskstats(NUM_DISKS, disk_stats1);
     sleep(1);  // needed else we don't get Watts readings
+    get_diskstats(NUM_DISKS, disk_stats2);
     int watts = wu.getWatts();
-    get_jiffies(cpus, stat, work_jiffies2, total_jiffies2);
+    get_jiffies(cpus, work_jiffies2, total_jiffies2);
 
     cout.fill('0');
     log_file.fill('0');
@@ -89,9 +101,17 @@ void log_line(const int cpus, fstream& stat, WattsUp& wu, int * workload_number,
             log_file <<             setw(3) << cpu_utilisation;
         } else {
             cout     << "," << "CPU" << setw(2) << cpu << "=" << setw(3) << cpu_utilisation;
-            log_file << "," <<          setw(2) << cpu << "=" << setw(3) << cpu_utilisation;
+            log_file << "," <<          setw(2) << cpu << "," << setw(3) << cpu_utilisation;
         }
     }
+
+    for (int disk=0; disk<NUM_DISKS; disk++) {
+        disk_utilisation = (disk_stats2[disk]-disk_stats1[disk]) / 10; // disk stats returns the number of miliseconds the disk has been active over the past second
+        //FIXME: We sometimes get disk utilisations >100!  Perhaps try actually timing how much time elapses between each measurement rather than assuming it's exactly 1second
+        cout     << "," << "DISK" << setw(2) << disk << "=" << setw(3) << disk_utilisation;
+        log_file << "," <<           setw(2) << disk << "," << setw(3) << disk_utilisation;
+    }
+
     cout     << endl;
     log_file << endl;
 }
@@ -136,7 +156,7 @@ int main(int argc, char* argv[])
     workload_config.io=0;
     workload_config.vm=0;
     workload_config.vm_bytes=128;
-    workload_config.hdd=0;
+    workload_config.hdd=1;
     workload_config.timeout=10;
     workload_config.filename_base = filename_base;
     workload_config.start_time = start_time;
@@ -145,20 +165,13 @@ int main(int argc, char* argv[])
     // TODO find the number of physical CPUs http://software.intel.com/en-us/articles/intel-64-architecture-processor-topology-enumeration/
     // TODO figure out where laptop gets power consumption
 
-    fstream stat; ///< Open /proc/stat (which gives us the CPU load)
-    stat.open("/proc/stat", fstream::in);
-    if (stat.fail()) {
-        cerr << "Error: failed to open /proc/stat" << endl;
-        exit(1);
-    }
-
     cout << "Instantiating WattsUp..." << endl;
     WattsUp wu;
 
     /* Log until workload finishes */
     while (!Workload::finished()) {
 
-        log_line(4, stat, wu, workload_number, start_time, log_file);
+        log_line(4, wu, workload_number, start_time, log_file);
         log_file.flush();
 
         if ((time(NULL)-start_time) == 10) {
@@ -171,7 +184,6 @@ int main(int argc, char* argv[])
     cout << "parent terminating" << endl;
 
     log_file.close();
-    stat.close(); // close /proc/stat
 
     return 0;
 }
