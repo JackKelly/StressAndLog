@@ -28,12 +28,10 @@ protected:
 private:
 
     void get_jiffies(int current_work_jiffies[], int current_total_jiffies[]);
-    void open_stat();
+    std::fstream * open_stat();
     int discover_num_cpu_lines();
 
     static CPUstats * instance;
-
-    std::fstream stat;
 
     /**
      * The number of lines in /proc/stat with "cpu" as the first column.
