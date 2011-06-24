@@ -23,18 +23,6 @@ using namespace std;
 void sigchld_handler(int signum);
 
 /**
- * get jiffie counts from /proc/stat for all CPUs
- *
- * @param cpus   number of cpu cores (including hyperthreading.
- *               so a dual-core CPU with hyperthreading enabled would
- *               have cpus=4
- *
- * @param work_jiffies  return array with size = cpus
- * @param total_jiffied return array with size = cpus
- */
-void get_jiffies(const int cpus, int work_jiffies[], int total_jiffies[]);
-
-/**
  * Generates the base of the filename of the form
  * MM-DD-HH-MM-SS
  * @returns base filename like 06-23-14-38-13
@@ -44,12 +32,11 @@ string generate_filename();
 /**
  * Output a line of the log file.
  */
-void log_line(const int cpus, /**< Total number of logical CPU cores (including hyperthreading
-                                   so a dual-core CPU with hyperthreading enabled would have cpus=4 */
-              WattsUp& wu,    /**< watts up object */
-              int * workload_number,  /**< a pointer to a variable storing the current workload number */
-              time_t start_time,   /**<  */
-              fstream& log_file);  /**< opened log file */
-
+void log_line(
+               WattsUp& wu    /**< watts up object */
+              ,int * workload_number  /**< a pointer to a variable storing the current workload number */
+              ,time_t start_time   /**<  */
+              ,fstream& log_file  /**< opened log file */
+              );
 
 #endif /* SAL_H_ */

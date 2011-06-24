@@ -1,6 +1,7 @@
 #include "sal.h"
 #include "Workload.h"
 #include "WattsUp.h"
+#include "CPUstats.h"
 #include <iostream>
 #include <cstdlib>
 #include <stdio.h>
@@ -25,35 +26,6 @@ void sigchld_handler(int signum)
     workload->next();
 }
 
-void get_jiffies(const int cpus, int work_jiffies[], int total_jiffies[])
-{
-    fstream stat;
-    stat.open("/proc/stat", fstream::in);
-    if ( ! stat.good() ) {
-        cerr << "Failed to open /proc/stat." << endl;
-        exit(1);
-    }
-
-    /* Read through each cpu line */
-    int  column;
-    for (int cpu=0; cpu<(cpus+1); cpu++) {
-        stat.ignore(4, ' '); // skip over the "cpu0" column TODO: try without the 2nd argument - I don't think it's necessary
-        total_jiffies[cpu] = work_jiffies[cpu] = 0; // reset
-
-        // get each column
-        for (int col=0; col<7; col++) {
-            stat >> column;
-            total_jiffies[cpu] += column;
-            if (col < 3) {
-                work_jiffies[cpu] += column;
-            }
-        }
-        stat.ignore(256, '\n'); // skip to start of next line
-    }
-
-    stat.close();
-}
-
 string generate_filename()
 {
     time_t rawtime = time(NULL); // get UNIX time
@@ -72,37 +44,35 @@ string generate_filename()
     return ss.str();
 }
 
-void log_line(const int cpus, WattsUp& wu, int * workload_number, time_t start_time, fstream& log_file)
+void log_line(WattsUp& wu, int * workload_number, time_t start_time, fstream& log_file)
 {
-    int cpu_utilisation, disk_utilisation;
-    const int NUM_DISKS = 1;
+    int disk_utilisation;
+    const int NUM_DISKS  = 1;
     int * disk_stats1    = new int[NUM_DISKS];
     int * disk_stats2    = new int[NUM_DISKS];
-    int * work_jiffies1  = new int[cpus+1]; // +1 because we need an extra entry for the average stats
-    int * total_jiffies1 = new int[cpus+1];
-    int * work_jiffies2  = new int[cpus+1];
-    int * total_jiffies2 = new int[cpus+1];
 
-    get_jiffies(cpus, work_jiffies1, total_jiffies1);
+    CPUstats * cpu_stats  = CPUstats::get_instance();
+    int num_cpu_lines  = cpu_stats->get_num_cpu_lines();
+    int * cpu_utilisation = new int[num_cpu_lines];
+
     get_diskstats(NUM_DISKS, disk_stats1);
     sleep(1);  // needed else we don't get Watts readings
     get_diskstats(NUM_DISKS, disk_stats2);
     int watts = wu.getWatts();
-    get_jiffies(cpus, work_jiffies2, total_jiffies2);
+    cpu_stats->get_cpu_utilisation(cpu_utilisation);
 
     cout.fill('0');
     log_file.fill('0');
     cout << "Time=" << setw(4) << time(NULL)-start_time << ",Workload=" << setw(3) << *workload_number << ",deciWatts=" << setw(4) << watts << ",";
     log_file        << setw(4) << time(NULL)-start_time << ","          << setw(3) << *workload_number << ","           << setw(4) << watts << ",";
 
-    for (int cpu=0; cpu<(cpus+1); cpu++) {
-        cpu_utilisation = 100 * ((double)(work_jiffies2[cpu]-work_jiffies1[cpu])/(total_jiffies2[cpu]-total_jiffies1[cpu]));
-        if (cpu==0) {
-            cout     << "CPUav=" << setw(3) << cpu_utilisation;
-            log_file <<             setw(3) << cpu_utilisation;
+    for (int cpu_line=0; cpu_line < num_cpu_lines; cpu_line++) {
+        if (cpu_line==0) {
+            cout     << "CPUav=" << setw(3) << cpu_utilisation[cpu_line];
+            log_file <<             setw(3) << cpu_utilisation[cpu_line];
         } else {
-            cout     << "," << "CPU" << setw(2) << cpu << "=" << setw(3) << cpu_utilisation;
-            log_file << "," <<          setw(2) << cpu << "," << setw(3) << cpu_utilisation;
+            cout     << "," << "CPU" << setw(2) << cpu_line << "=" << setw(3) << cpu_utilisation[cpu_line];
+            log_file << "," <<          setw(2) << cpu_line << "," << setw(3) << cpu_utilisation[cpu_line];
         }
     }
 
@@ -175,7 +145,7 @@ int main(int argc, char* argv[])
     /* Log until workload finishes */
     while ( ! workload->finished()) {
 
-        log_line(4, wu, workload_number, start_time, log_file);
+        log_line(wu, workload_number, start_time, log_file);
         log_file.flush();
 
         if ((time(NULL)-start_time) == 10) {
