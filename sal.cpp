@@ -21,7 +21,8 @@ void sigchld_handler(int signum)
 #ifdef DEBUG
     cout << "child termination detected." << endl;
 #endif
-    Workload::next();
+    Workload * workload = Workload::get_instance();
+    workload->next();
 }
 
 void get_jiffies(const int cpus, int work_jiffies[], int total_jiffies[])
@@ -148,6 +149,9 @@ int main(int argc, char* argv[])
     sigchld_action.sa_flags = 0;
     sigaction(SIGCHLD, &sigchld_action, NULL);
 
+    /* Instantiate Workload singleton */
+    Workload * workload = Workload::get_instance();
+
     /**
      * Set workload config
      */
@@ -160,7 +164,7 @@ int main(int argc, char* argv[])
     workload_config.timeout=10;
     workload_config.filename_base = filename_base;
     workload_config.start_time = start_time;
-    int * workload_number = Workload::set_workload_config(&workload_config);
+    int * workload_number = workload->set_workload_config(&workload_config);
 
     // TODO find the number of physical CPUs http://software.intel.com/en-us/articles/intel-64-architecture-processor-topology-enumeration/
     // TODO figure out where laptop gets power consumption
@@ -169,7 +173,7 @@ int main(int argc, char* argv[])
     WattsUp wu;
 
     /* Log until workload finishes */
-    while (!Workload::finished()) {
+    while ( ! workload->finished()) {
 
         log_line(4, wu, workload_number, start_time, log_file);
         log_file.flush();
@@ -177,7 +181,7 @@ int main(int argc, char* argv[])
         if ((time(NULL)-start_time) == 10) {
             /* Kick off first workload after 10 seconds */
             cout << "Kicking off first workload..." << endl;
-            Workload::next();
+            workload->next();
         }
     }
 

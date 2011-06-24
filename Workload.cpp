@@ -15,12 +15,22 @@
 
 using namespace std;
 
-int Workload::counter = 0;
-int Workload::permutations;
-bool Workload::fin = false;
-struct Workload_config * Workload::workload_config  = 0;
-struct Workload_config * Workload::current_workload = 0;
-fstream Workload::workload_log;
+Workload * Workload::instance = 0;
+
+Workload * Workload::get_instance()
+{
+    if (instance==NULL) { // is this the first attempt to instantiate an object?
+        instance = new Workload(); // create sole instance
+    }
+    return instance;
+}
+
+Workload::Workload() :
+        counter(0),
+        fin(false),
+        workload_config(NULL),
+        current_workload(NULL)
+{}
 
 /**
  * Set the workload config options

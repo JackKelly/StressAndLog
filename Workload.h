@@ -16,7 +16,11 @@
 
 using namespace std;
 
-struct Workload_config {
+/**
+ * Structure for storing configuration information
+ */
+struct Workload_config
+{
     int cpu, io, vm, vm_bytes, hdd, timeout;
     string filename_base;
     time_t start_time;
@@ -29,37 +33,50 @@ struct Workload_config {
     friend ostream& operator<<(ostream& o, const Workload_config& wc);
 };
 
+/**
+ * A singleton class which runs the workloads.
+ *
+ * The main responsibilities of this class include:
+ *     prepare arguments for the command-line utility "stress"
+ *     run "stress"
+ *     keep track of which workloads we've run so far and which we still need to run
+ */
 class Workload
 {
 public:
+    static Workload * get_instance();
+
     /**
      * Call next workload
      */
-    static void next();
-    static int* set_workload_config(struct Workload_config * );
-    static bool finished();
+    void next();
+    int * set_workload_config(struct Workload_config * );
+    bool finished();
 protected:
     Workload();
+    Workload(const Workload&);
+    Workload & operator=(const Workload&);
 private:
-    static int counter;
-    static int permutations;
-    static bool fin;
-    static fstream workload_log;
+    static Workload * instance;
+    int counter;
+    int permutations;
+    bool fin;
+    fstream workload_log;
 
     /**
      * This structure stores the maximums for each config option
      */
-    static struct Workload_config * workload_config;
+    struct Workload_config * workload_config;
 
     /**
      * Stores last known config
      */
-    static struct Workload_config * current_workload;
+    struct Workload_config * current_workload;
 
     /**
      * Run a given workload
      */
-    static void run_workload();
+    void run_workload();
 
     /**
      * Convert an integer to a string
@@ -68,7 +85,7 @@ private:
      * @param s   optional.  set to true if an 's' suffix is required
      * @return    and ASCII string representing the integer i
      */
-    static char const * i_to_c(const int i, const bool s=false);
+    char const * i_to_c(const int i, const bool s=false);
 };
 
 #endif /* WORKLOAD_H_ */
