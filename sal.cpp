@@ -19,11 +19,7 @@ using namespace std;
 
 void sigchld_handler(int signum)
 {
-#ifdef DEBUG
-    cout << "child termination detected." << endl;
-#endif
-    Workload * workload = Workload::get_instance();
-    workload->next();
+    WorkloadSingleton::get_instance()->next();
 }
 
 string generate_filename()
@@ -44,22 +40,20 @@ string generate_filename()
     return ss.str();
 }
 
-void log_line(WattsUp& wu, int * workload_number, time_t start_time, fstream& log_file)
+void log_line(int * workload_number, time_t start_time, fstream& log_file)
 {
-    int disk_utilisation;
-    const int NUM_DISKS  = 1;
-    int * disk_stats1    = new int[NUM_DISKS];
-    int * disk_stats2    = new int[NUM_DISKS];
-
-    CPUstats * cpu_stats  = CPUstats::get_instance();
+    CPUstats * cpu_stats  = CPUstatsSingleton::get_instance();
     int num_cpu_lines  = cpu_stats->get_num_cpu_lines();
-    int * cpu_utilisation = new int[num_cpu_lines];
+    int * cpu_utilisation;
 
-    get_diskstats(NUM_DISKS, disk_stats1);
-    sleep(1);  // needed else we don't get Watts readings
-    get_diskstats(NUM_DISKS, disk_stats2);
-    int watts = wu.getWatts();
-    cpu_stats->get_cpu_utilisation(cpu_utilisation);
+    Diskstats * disk_stats = DiskstatsSingleton::get_instance();
+    int num_disks = disk_stats->get_num_disks();
+    int * disk_utilisation;
+
+    int watts = WattsUpSingleton::get_instance()->getWatts();
+
+    disk_utilisation = disk_stats->get_utilisation();
+    cpu_utilisation  = cpu_stats->get_cpu_utilisation();
 
     cout.fill('0');
     log_file.fill('0');
@@ -76,15 +70,16 @@ void log_line(WattsUp& wu, int * workload_number, time_t start_time, fstream& lo
         }
     }
 
-    for (int disk=0; disk<NUM_DISKS; disk++) {
-        disk_utilisation = (disk_stats2[disk]-disk_stats1[disk]) / 10; // disk stats returns the number of miliseconds the disk has been active over the past second
-        //FIXME: We sometimes get disk utilisations >100!  Perhaps try actually timing how much time elapses between each measurement rather than assuming it's exactly 1second
-        cout     << "," << "DISK" << setw(2) << disk << "=" << setw(3) << disk_utilisation;
-        log_file << "," <<           setw(2) << disk << "," << setw(3) << disk_utilisation;
+    for (int disk=0; disk<num_disks; disk++) {
+        cout     << "," << "DISK" << setw(2) << disk << "=" << setw(3) << disk_utilisation[disk];
+        log_file << "," <<           setw(2) << disk << "," << setw(3) << disk_utilisation[disk];
     }
 
     cout     << endl;
     log_file << endl;
+
+    delete [] cpu_utilisation;
+    delete [] disk_utilisation;
 }
 
 int main(int argc, char* argv[])
@@ -120,12 +115,12 @@ int main(int argc, char* argv[])
     sigaction(SIGCHLD, &sigchld_action, NULL);
 
     /* Instantiate Workload singleton */
-    Workload * workload = Workload::get_instance();
+    Workload * workload = WorkloadSingleton::get_instance();
 
     /**
      * Set workload config
      */
-    struct Workload_config workload_config;
+    Workload::Workload_config workload_config;
     workload_config.cpu=1;
     workload_config.io=0;
     workload_config.vm=0;
@@ -139,13 +134,11 @@ int main(int argc, char* argv[])
     // TODO find the number of physical CPUs http://software.intel.com/en-us/articles/intel-64-architecture-processor-topology-enumeration/
     // TODO figure out where laptop gets power consumption
 
-    cout << "Instantiating WattsUp..." << endl;
-    WattsUp wu;
 
     /* Log until workload finishes */
     while ( ! workload->finished()) {
 
-        log_line(wu, workload_number, start_time, log_file);
+        log_line(workload_number, start_time, log_file);
         log_file.flush();
 
         if ((time(NULL)-start_time) == 10) {
@@ -153,6 +146,8 @@ int main(int argc, char* argv[])
             cout << "Kicking off first workload..." << endl;
             workload->next();
         }
+
+        sleep(1);  // needed else we don't get Watts readings
     }
 
     cout << "parent terminating" << endl;

@@ -9,20 +9,40 @@
 #define DISKSTATS_H_
 
 #include <fstream>
+#include <sys/time.h>
+#include "Singleton.h"
 
 using namespace std;
 
-/**
- * Finds the number of milliseconds spent doing IO for each disk.
- *
- * Function returns the 10th column of the /proc/diskstats file for each disk
- * For details of what each column in /proc/diskstats means, check
- * http://www.mjmwired.net/kernel/Documentation/iostats.txt
- *
- * @param disks - the number of physical disks installed
- * @param dstatsfile - the opened /proc/diskstats fstream object
- * @param diskstats[] - the returned disk stats, one for each physical disk
- */
-void get_diskstats(const int disks, int diskstats[]);
+class Diskstats {
+public:
+    Diskstats();
+    ~Diskstats();
+    int * get_utilisation();
+    int get_num_disks();
+private:
+    void read_diskstats(int diskstats[]);
+
+    fstream* open_diskstats();
+
+    int discover_num_disks();
+
+    timeval * get_time();
+
+    int get_msecs_elapsed();
+
+    int num_disks;
+
+    int * prev_diskstats;
+
+    const int INDENT; // distance from  beginning of line to the disk ID
+
+    /**
+     * The time that we last read the disk stats
+     */
+    timeval * prev_time;
+};
+
+typedef Singleton<Diskstats> DiskstatsSingleton;
 
 #endif /* DISKSTATS_H_ */

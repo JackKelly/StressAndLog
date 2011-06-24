@@ -15,33 +15,21 @@
 
 using namespace std;
 
-Workload * Workload::instance = 0;
-
-Workload * Workload::get_instance()
-{
-    if (instance==NULL) { // is this the first attempt to instantiate an object?
-        instance = new Workload(); // create sole instance
-    }
-    return instance;
-}
-
 Workload::Workload() :
         counter(0),
         fin(false),
         workload_config(NULL),
         current_workload(NULL)
-{
-    cout << "Workload constructor" << endl;
-    }
+{ }
 
 /**
  * Set the workload config options
  * @param _workload_config - a pointer to a Workload_config structure
  *                           specifying the set of jobs we want to run
- * @returns the address of the counter (which keeps track of which job we're currently running.
+ * @return the address of the counter (which keeps track of which job we're currently running.
  *                           This is useful for the log
  */
-int* Workload::set_workload_config(struct Workload_config * _workload_config) {
+int* Workload::set_workload_config(struct Workload::Workload_config * _workload_config) {
     workload_config = _workload_config;
 
     // Calculate how many different permutations we're going to run
@@ -89,10 +77,11 @@ int* Workload::set_workload_config(struct Workload_config * _workload_config) {
 }
 
 /**
- * Convert from an integer to a char * string
+ * Convert from an integer to a char * string.
+ *
  * @param i = the integer to convert
  * @param s = whether or not we want an 's' at the end
- * @returns = the const char * string encoding the number
+ * @return = the const char * string encoding the number
  */
 char const * Workload::i_to_c(const int i, const bool s)
 {
@@ -109,7 +98,7 @@ char const * Workload::i_to_c(const int i, const bool s)
 
 /**
  * Run a workload.  The main responsibility of this function is to prepare the arguments for
- * the command-line utility "stress" and to run "stress"
+ * the command-line utility "stress" and to run "stress".
  */
 void Workload::run_workload()
 {
@@ -183,10 +172,8 @@ void Workload::run_workload()
             }
             cout << endl;
 
-            /**
-             * We're a child process so replace our image with 'stress'
-             * execvp searches for the program in our path and passes our arguments
-             */
+            /* We're a child process so replace our image with 'stress'
+             * execvp searches for the program in our path and passes our arguments */
             execvp("stress", (char* const*)argv);
 
             // Check for errors and handle
@@ -241,7 +228,7 @@ bool Workload::finished()
     return fin;
 }
 
-ostream& operator<<(ostream& o, const Workload_config& wc)
+ostream& operator<<(ostream& o, const Workload::Workload_config& wc)
 {
     o << "cpu=" << wc.cpu << " io=" << wc.io << " vm=" << wc.vm << " vm_bytes=" << wc.vm_bytes
             << " hdd=" << wc.hdd << " timeout=" << wc.timeout;

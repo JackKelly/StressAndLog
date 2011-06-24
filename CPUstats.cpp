@@ -13,8 +13,6 @@
 
 using namespace std;
 
-CPUstats * CPUstats::instance = NULL;
-
 CPUstats::CPUstats()
 {
     num_cpu_lines = discover_num_cpu_lines();
@@ -29,15 +27,6 @@ CPUstats::~CPUstats()
     delete [] previous_total_jiffies;
     previous_work_jiffies = NULL;
     previous_total_jiffies = NULL;
-    delete instance;
-}
-
-CPUstats * CPUstats::get_instance()
-{
-    if (instance == NULL) {
-        instance = new CPUstats();
-    }
-    return instance;
 }
 
 /**
@@ -72,6 +61,7 @@ void CPUstats::get_jiffies(int current_work_jiffies[], int current_total_jiffies
     }
 
     stat->close();
+    delete stat;
 }
 
 /**
@@ -80,10 +70,11 @@ void CPUstats::get_jiffies(int current_work_jiffies[], int current_total_jiffies
  *
  * @return utilisation
  */
-void CPUstats::get_cpu_utilisation(int utilisation[])
+int * CPUstats::get_cpu_utilisation()
 {
     int * current_work_jiffies  = new int[num_cpu_lines];
     int * current_total_jiffies = new int[num_cpu_lines];
+    int * utilisation           = new int[num_cpu_lines];
     get_jiffies(current_work_jiffies, current_total_jiffies);
 
     for (int cpu=0; cpu<num_cpu_lines; cpu++) {
@@ -98,6 +89,8 @@ void CPUstats::get_cpu_utilisation(int utilisation[])
 
     previous_work_jiffies  = current_work_jiffies;
     previous_total_jiffies = current_total_jiffies;
+
+    return utilisation;
 }
 
 /**
@@ -145,6 +138,7 @@ int CPUstats::discover_num_cpu_lines()
     }
 
     stat->close();
+    delete stat;
 
     return _num_cpu_lines;
 }

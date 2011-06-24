@@ -8,13 +8,29 @@
 #ifndef SINGLETON_H_
 #define SINGLETON_H_
 
-class Singleton {
+#include <cassert>
+#include <iostream>
+
+template<class T>
+class Singleton
+{
 public:
-    virtual ~Singleton();
+    static T* get_instance() {
+        if ( instance == NULL ) {
+            instance = new T;
+        }
+        assert( instance != NULL );
+        return instance;
+    }
 protected:
     Singleton();
+    ~Singleton();
+private:
     Singleton(const Singleton&);
-    Singleton & operator=(const Singleton&);
+    Singleton& operator=(const Singleton&);
+    static T * instance;
 };
+
+template<class T> T* Singleton<T>::instance=NULL;
 
 #endif /* SINGLETON_H_ */

@@ -12,6 +12,7 @@
 #define MAX_PARAMS 18
 
 #include <SerialStream.h>
+#include "Singleton.h"
 
 using namespace std;
 
@@ -29,9 +30,6 @@ private:
      */
     LibSerial::SerialStream wattsUpSerialPort;
 
-    /**
-     * Open serial connection
-     */
     void openDevice();
 
     struct pair {
@@ -44,6 +42,10 @@ private:
     void initialiseResponse();
 
     void getResponse();
+
+    void sendInitCommand();
 };
+
+typedef Singleton<WattsUp> WattsUpSingleton;
 
 #endif /* WATTSUP_H_ */

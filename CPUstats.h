@@ -10,28 +10,22 @@
 
 #include <string>
 #include <fstream>
+#include "Singleton.h"
 
 /**
  * Singleton class for returning CPU utilisation stats
  */
 class CPUstats {
 public:
-    static CPUstats * get_instance();
-    int get_num_cpu_lines();
-    void get_cpu_utilisation(int utilisation[]);
-
-protected:
     CPUstats();
-    CPUstats(const CPUstats&);
-    CPUstats & operator=(const CPUstats&);
     ~CPUstats();
-private:
+    int get_num_cpu_lines();
+    int * get_cpu_utilisation();
 
+private:
     void get_jiffies(int current_work_jiffies[], int current_total_jiffies[]);
     std::fstream * open_stat();
     int discover_num_cpu_lines();
-
-    static CPUstats * instance;
 
     /**
      * The number of lines in /proc/stat with "cpu" as the first column.
@@ -42,5 +36,7 @@ private:
     int * previous_work_jiffies;
     int * previous_total_jiffies;
 };
+
+typedef Singleton<CPUstats> CPUstatsSingleton;
 
 #endif /* CPUSTATS_H_ */

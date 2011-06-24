@@ -16,6 +16,8 @@ using namespace std;
 WattsUp::WattsUp()
 {
     openDevice();
+    cout << "Successfully established a serial connection." << endl;
+    sendInitCommand();
     initialiseResponse();
 }
 
@@ -51,6 +53,9 @@ void WattsUp::initialiseResponse()
     }
 }
 
+/**
+ * Open serial connection
+ */
 void WattsUp::openDevice()
 {
     wattsUpSerialPort.Open("/dev/ttyUSB0", std::ios_base::in | std::ios_base::out);
@@ -64,8 +69,7 @@ void WattsUp::openDevice()
      * RS232; 115200 baud, 8 data bits, 1 stop bit, no parity
      * Data consists of standard ASCII chars
      * Numbers represented as ASCII strings
-     * Packets start with "#" and end with ";"
-     */
+     * Packets start with "#" and end with ";"     */
 
     using namespace LibSerial;
 
@@ -98,9 +102,9 @@ void WattsUp::openDevice()
         cerr << "Failed to set flow control" << endl;
         exit(1);
     }
-
-    cout << "Successfully established a serial connection." << endl;
-
+}
+void WattsUp::sendInitCommand()
+{
     // send command to tell the meter to send data every second
     cout << "Sending command \"#C,W,18,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1;\" to wattsup to tell it to send us every parameter" << endl;
     wattsUpSerialPort << "#C,W,18,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1;" << endl;
@@ -119,8 +123,6 @@ void WattsUp::openDevice()
 int WattsUp::getWatts()
 {
     getResponse();
-    // set 2-second timer
-    // receive
 
     return response[1].value;
 }
@@ -139,6 +141,15 @@ void WattsUp::getResponse()
 
     c = wattsUpSerialPort.peek();
     while (c != ';' && c != '\n' && c != '\0' && count<numParams) {
+
+        if ( ! wattsUpSerialPort.good() ) {
+            cout << "Serial connection failed... reconnecting..." << endl;
+            wattsUpSerialPort.Close();
+            openDevice();
+            wattsUpSerialPort >> c;
+            continue;
+        }
+
         if (isdigit(c)) {
             wattsUpSerialPort >> response[count++].value;
             if (count==1 && numParams>MAX_PARAMS) {
@@ -150,11 +161,6 @@ void WattsUp::getResponse()
             wattsUpSerialPort.ignore(1); // jump over the underscore
         }
 
-#ifdef DEBUG
-//        if (count > 0) {
-//            cout << "Reading " << count << "/" << numParams << " = " << response[count-1].name << "=" << response[count-1].value << endl;
-//        }
-#endif
         wattsUpSerialPort.ignore(1); // move 1 char along
         c = wattsUpSerialPort.peek();
     }
