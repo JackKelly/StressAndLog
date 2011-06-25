@@ -2,6 +2,7 @@
 #include "Workload.h"
 #include "WattsUp.h"
 #include "CPUstats.h"
+#include "Log.h"
 #include <iostream>
 #include <cstdlib>
 #include <stdio.h>
@@ -40,8 +41,10 @@ string generate_filename()
     return ss.str();
 }
 
-void log_line(int * workload_number, time_t start_time, fstream& log_file)
+void log_line(int * workload_number, time_t start_time)
 {
+    Log * log = LogSingleton::get_instance();
+
     CPUstats * cpu_stats  = CPUstatsSingleton::get_instance();
     int num_cpu_lines  = cpu_stats->get_num_cpu_lines();
     int * cpu_utilisation;
@@ -50,33 +53,38 @@ void log_line(int * workload_number, time_t start_time, fstream& log_file)
     int num_disks = disk_stats->get_num_disks();
     int * disk_utilisation;
 
-    int watts = WattsUpSingleton::get_instance()->getWatts();
+    int deciWatts = WattsUpSingleton::get_instance()->getDeciWatts();
 
     disk_utilisation = disk_stats->get_utilisation();
     cpu_utilisation  = cpu_stats->get_cpu_utilisation();
 
-    cout.fill('0');
-    log_file.fill('0');
-    cout << "Time=" << setw(4) << time(NULL)-start_time << ",Workload=" << setw(3) << *workload_number << ",deciWatts=" << setw(4) << watts << ",";
-    log_file        << setw(4) << time(NULL)-start_time << ","          << setw(3) << *workload_number << ","           << setw(4) << watts << ",";
+//    cout.fill('0');
+//    log_file.fill('0');
+
+    log->log("Time", (time(NULL) - start_time) );
+    log->log("Workload", *workload_number);
+
+    log->log("deciWatts", deciWatts);
 
     for (int cpu_line=0; cpu_line < num_cpu_lines; cpu_line++) {
         if (cpu_line==0) {
-            cout     << "CPUav=" << setw(3) << cpu_utilisation[cpu_line];
-            log_file <<             setw(3) << cpu_utilisation[cpu_line];
+//            cout     << "CPUav=" << setw(3) << cpu_utilisation[cpu_line];
+//            log_file <<             setw(3) << cpu_utilisation[cpu_line];
+            log->log("CPUav", cpu_utilisation[cpu_line]);
         } else {
-            cout     << "," << "CPU" << setw(2) << cpu_line << "=" << setw(3) << cpu_utilisation[cpu_line];
-            log_file << "," <<          setw(2) << cpu_line << "," << setw(3) << cpu_utilisation[cpu_line];
+//            cout     << "," << "CPU" << setw(2) << cpu_line << "=" << setw(3) << cpu_utilisation[cpu_line];
+//            log_file << "," <<          setw(2) << cpu_line << "," << setw(3) << cpu_utilisation[cpu_line];
+            log->log("CPU", cpu_line, cpu_utilisation[cpu_line]);
         }
     }
 
     for (int disk=0; disk<num_disks; disk++) {
-        cout     << "," << "DISK" << setw(2) << disk << "=" << setw(3) << disk_utilisation[disk];
-        log_file << "," <<           setw(2) << disk << "," << setw(3) << disk_utilisation[disk];
+//        cout     << "," << "DISK" << setw(2) << disk << "=" << setw(3) << disk_utilisation[disk];
+//        log_file << "," <<           setw(2) << disk << "," << setw(3) << disk_utilisation[disk];
+        log->log("DISK", disk, disk_utilisation[disk]);
     }
 
-    cout     << endl;
-    log_file << endl;
+    log->endl();
 
     delete [] cpu_utilisation;
     delete [] disk_utilisation;
@@ -89,17 +97,11 @@ int main(int argc, char* argv[])
     // start logging system workload
     // fire off a sequence of 'stress' workloads
 
-    fstream log_file; ///< Generate base filename for log files
     string filename_base = generate_filename();
     cout << "Base filename = " << filename_base << endl;
-    string filename = "stress-log-";
-    filename.append( filename_base );
-    filename.append( ".csv" );
-    log_file.open( filename.c_str(), fstream::out | fstream::app );
-    if ( ! log_file.good() ) {
-        cerr << "Cannot open " << filename << endl;
-        exit(1);
-    }
+
+    Log * log = LogSingleton::get_instance();
+    log->open_log(filename_base);
 
     time_t start_time = time(NULL);
 
@@ -138,8 +140,7 @@ int main(int argc, char* argv[])
     /* Log until workload finishes */
     while ( ! workload->finished()) {
 
-        log_line(workload_number, start_time, log_file);
-        log_file.flush();
+        log_line(workload_number, start_time);
 
         if ((time(NULL)-start_time) == 10) {
             /* Kick off first workload after 10 seconds */
@@ -151,8 +152,6 @@ int main(int argc, char* argv[])
     }
 
     cout << "parent terminating" << endl;
-
-    log_file.close();
 
     return 0;
 }

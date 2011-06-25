@@ -36,7 +36,6 @@ void log_line(
                WattsUp& wu    /**< watts up object */
               ,int * workload_number  /**< a pointer to a variable storing the current workload number */
               ,time_t start_time   /**<  */
-              ,fstream& log_file  /**< opened log file */
               );
 
 #endif /* SAL_H_ */

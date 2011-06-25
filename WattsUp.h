@@ -21,7 +21,7 @@ public:
     WattsUp();
     ~WattsUp();
 
-    int getWatts();
+    int getDeciWatts();
 
 private:
 

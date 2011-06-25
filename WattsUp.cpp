@@ -120,7 +120,7 @@ void WattsUp::sendInitCommand()
  *
  * @returns Current number of Watts*10
  */
-int WattsUp::getWatts()
+int WattsUp::getDeciWatts()
 {
     getResponse();
 
