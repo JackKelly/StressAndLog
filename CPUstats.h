@@ -11,16 +11,18 @@
 #include <string>
 #include <fstream>
 #include "Singleton.h"
+#include "Sensor.h"
 
 /**
  * Singleton class for returning CPU utilisation stats
  */
-class CPUstats {
+class CPUstats : public Sensor {
 public:
     CPUstats();
     ~CPUstats();
     int get_num_cpu_lines();
     int * get_cpu_utilisation();
+    virtual void log();
 
 private:
     void get_jiffies(int current_work_jiffies[], int current_total_jiffies[]);

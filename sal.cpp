@@ -38,84 +38,28 @@ string generate_filename()
        << setw(2) << timeinfo->tm_min   << "-"
        << setw(2) << timeinfo->tm_sec;
 
+    cout << "INFO: Base filename = " << ss.str() << endl;
+
     return ss.str();
 }
 
-void log_line(int * workload_number, time_t start_time)
+/**
+ *  Set a signal handler for SIGCHLD (which we receive
+ *  when a child (i.e. "stress") terminates
+ *  This code is adapted from
+ *  gnu.org/s/hello/manual/libc/Sigaction-Function-Example.html
+ */
+void set_sigchld_handler()
 {
-    Log * log = LogSingleton::get_instance();
-
-    CPUstats * cpu_stats  = CPUstatsSingleton::get_instance();
-    int num_cpu_lines  = cpu_stats->get_num_cpu_lines();
-    int * cpu_utilisation;
-
-    Diskstats * disk_stats = DiskstatsSingleton::get_instance();
-    int num_disks = disk_stats->get_num_disks();
-    int * disk_utilisation;
-
-    int deciWatts = WattsUpSingleton::get_instance()->getDeciWatts();
-
-    disk_utilisation = disk_stats->get_utilisation();
-    cpu_utilisation  = cpu_stats->get_cpu_utilisation();
-
-//    cout.fill('0');
-//    log_file.fill('0');
-
-    log->log("Time", (time(NULL) - start_time) );
-    log->log("Workload", *workload_number);
-
-    log->log("deciWatts", deciWatts);
-
-    for (int cpu_line=0; cpu_line < num_cpu_lines; cpu_line++) {
-        if (cpu_line==0) {
-//            cout     << "CPUav=" << setw(3) << cpu_utilisation[cpu_line];
-//            log_file <<             setw(3) << cpu_utilisation[cpu_line];
-            log->log("CPUav", cpu_utilisation[cpu_line]);
-        } else {
-//            cout     << "," << "CPU" << setw(2) << cpu_line << "=" << setw(3) << cpu_utilisation[cpu_line];
-//            log_file << "," <<          setw(2) << cpu_line << "," << setw(3) << cpu_utilisation[cpu_line];
-            log->log("CPU", cpu_line, cpu_utilisation[cpu_line]);
-        }
-    }
-
-    for (int disk=0; disk<num_disks; disk++) {
-//        cout     << "," << "DISK" << setw(2) << disk << "=" << setw(3) << disk_utilisation[disk];
-//        log_file << "," <<           setw(2) << disk << "," << setw(3) << disk_utilisation[disk];
-        log->log("DISK", disk, disk_utilisation[disk]);
-    }
-
-    log->endl();
-
-    delete [] cpu_utilisation;
-    delete [] disk_utilisation;
-}
-
-int main(int argc, char* argv[])
-{
-    // read config file
-    // start logging power consumption
-    // start logging system workload
-    // fire off a sequence of 'stress' workloads
-
-    string filename_base = generate_filename();
-    cout << "Base filename = " << filename_base << endl;
-
-    Log * log = LogSingleton::get_instance();
-    log->open_log(filename_base);
-
-    time_t start_time = time(NULL);
-
-    /* Set a signal handler for SIGCHLD (which we receive
-     *  when a child (i.e. "stress") terminates
-     *  This code is adapted from
-     *  gnu.org/s/hello/manual/libc/Sigaction-Function-Example.html
-     */
     struct sigaction sigchld_action;
     sigchld_action.sa_handler = sigchld_handler;
     sigemptyset(&sigchld_action.sa_mask);
     sigchld_action.sa_flags = 0;
     sigaction(SIGCHLD, &sigchld_action, NULL);
+}
 
+int * configure_workload(const string filename_base, const time_t start_time)
+{
     /* Instantiate Workload singleton */
     Workload * workload = WorkloadSingleton::get_instance();
 
@@ -132,10 +76,29 @@ int main(int argc, char* argv[])
     workload_config.filename_base = filename_base;
     workload_config.start_time = start_time;
     int * workload_number = workload->set_workload_config(&workload_config);
+    return workload_number;
+}
 
-    // TODO find the number of physical CPUs http://software.intel.com/en-us/articles/intel-64-architecture-processor-topology-enumeration/
-    // TODO figure out where laptop gets power consumption
+void log_line(int * workload_number, time_t start_time)
+{
+    WattsUp * wattsup     = WattsUpSingleton::get_instance();
+    CPUstats * cpu_stats  = CPUstatsSingleton::get_instance();
+    Diskstats * diskstats = DiskstatsSingleton::get_instance();
+    Log * log             = LogSingleton::get_instance();
 
+    wattsup->log();
+    cpu_stats->log();
+    diskstats->log();
+
+    log->log("Time", (time(NULL) - start_time) );
+    log->log("Workload", *workload_number);
+
+    log->endl();
+}
+
+void log_and_run_workload(const time_t start_time, int * workload_number)
+{
+    Workload * workload = WorkloadSingleton::get_instance();
 
     /* Log until workload finishes */
     while ( ! workload->finished()) {
@@ -148,10 +111,31 @@ int main(int argc, char* argv[])
             workload->next();
         }
 
-        sleep(1);  // needed else we don't get Watts readings
+        sleep(1); // wait 1 second
     }
+}
 
-    cout << "parent terminating" << endl;
+int main(int argc, char* argv[])
+{
+    // read config file
+    // start logging power consumption
+    // start logging system workload
+    // fire off a sequence of 'stress' workloads
+
+    string filename_base = generate_filename();
+
+    LogSingleton::get_instance()->open_log(filename_base);
+
+    time_t start_time = time(NULL);
+
+    set_sigchld_handler();
+
+    int * workload_number;
+    workload_number = configure_workload(filename_base, start_time);
+
+    log_and_run_workload(start_time, workload_number);
+
+    cout << "INFO: Parent process finished" << endl;
 
     return 0;
 }

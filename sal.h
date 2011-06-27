@@ -22,12 +22,16 @@ using namespace std;
  */
 void sigchld_handler(int signum);
 
+void set_sigchld_handler();
+
 /**
  * Generates the base of the filename of the form
  * MM-DD-HH-MM-SS
  * @returns base filename like 06-23-14-38-13
  */
 string generate_filename();
+
+int * configure_workload(const string filename_base, const time_t start_time);
 
 /**
  * Output a line of the log file.
@@ -37,5 +41,7 @@ void log_line(
               ,int * workload_number  /**< a pointer to a variable storing the current workload number */
               ,time_t start_time   /**<  */
               );
+
+void log_and_run_workload(const time_t start_time, int * workload_number);
 
 #endif /* SAL_H_ */

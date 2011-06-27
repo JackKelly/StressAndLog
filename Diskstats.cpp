@@ -6,6 +6,7 @@
  */
 
 #include "Diskstats.h"
+#include "Log.h"
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -18,8 +19,7 @@ Diskstats::Diskstats() :
         INDENT(13)
 {
     num_disks = discover_num_disks();
-    prev_diskstats = new int[num_disks];
-    read_diskstats(prev_diskstats);
+    prev_diskstats = read_diskstats();
     prev_time = get_time();
 }
 
@@ -49,9 +49,13 @@ timeval * Diskstats::get_time()
  * For details of what each column in /proc/diskstats means, check
  * http://www.mjmwired.net/kernel/Documentation/iostats.txt
  *
+ * It's the caller's responsibility to delete the returned array
+ *
  */
-void Diskstats::read_diskstats(int diskstats[])  //TODO see if this can return an int*
+int * Diskstats::read_diskstats()
 {
+    int * diskstats = new int[num_disks];
+
     fstream * dstatsfile = open_diskstats();
 
     // Seek to the row which starts "sda"
@@ -82,6 +86,8 @@ void Diskstats::read_diskstats(int diskstats[])  //TODO see if this can return a
     }
     dstatsfile->close();
     delete dstatsfile;
+
+    return diskstats;
 }
 
 /**
@@ -114,18 +120,17 @@ int Diskstats::get_msecs_elapsed()
  */
 int * Diskstats::get_utilisation()
 {
-    int * current_diskstats = new int[num_disks];
-    read_diskstats(current_diskstats);
-    int miliseconds_elapsed = get_msecs_elapsed();
+    int * current_diskstats = read_diskstats();
+    int milliseconds_elapsed = get_msecs_elapsed();
 
     int * utilisation = new int[num_disks];
 
-    cout << "ELAPSED=" << miliseconds_elapsed << "mS,";
+    LogSingleton::get_instance()->log("Elapsed", milliseconds_elapsed, "ms");
 
     for (int disk=0; disk<num_disks; disk++) {
         utilisation[disk] = 100 *
                 ((double)(current_diskstats[disk] - prev_diskstats[disk]) /
-                        miliseconds_elapsed);
+                        milliseconds_elapsed);
     }
 
     delete [] prev_diskstats;
@@ -138,6 +143,7 @@ int * Diskstats::get_utilisation()
  * Open /proc/diskstats
  *
  * @return a pointer to an fstream object
+ *         It's the caller's responsibilty to delete this
  */
 fstream* Diskstats::open_diskstats()
 {
@@ -181,4 +187,15 @@ int Diskstats::discover_num_disks()
 int Diskstats::get_num_disks()
 {
     return num_disks;
+}
+
+void Diskstats::log()
+{
+    int * disk_utilisation = get_utilisation();
+
+    for (int disk=0; disk<num_disks; disk++) {
+        LogSingleton::get_instance()->log("DISK", disk, disk_utilisation[disk], "%");
+    }
+
+    delete [] disk_utilisation;
 }

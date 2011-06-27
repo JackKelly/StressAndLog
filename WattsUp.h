@@ -13,15 +13,17 @@
 
 #include <SerialStream.h>
 #include "Singleton.h"
+#include "Sensor.h"
 
 using namespace std;
 
-class WattsUp {
+class WattsUp : public Sensor {
 public:
     WattsUp();
     ~WattsUp();
 
-    int getDeciWatts();
+    virtual void log();
+    int get_deci_watts();
 
 private:
 
@@ -30,7 +32,7 @@ private:
      */
     LibSerial::SerialStream wattsUpSerialPort;
 
-    void openDevice();
+    void open_device();
 
     struct pair {
         string name;
@@ -39,11 +41,11 @@ private:
 
     pair response[MAX_PARAMS+1];
 
-    void initialiseResponse();
+    void initialise_response();
 
-    void getResponse();
+    void get_response();
 
-    void sendInitCommand();
+    void send_init_command();
 };
 
 typedef Singleton<WattsUp> WattsUpSingleton;

@@ -6,6 +6,8 @@
  */
 
 #include "CPUstats.h"
+#include "Sensor.h"
+#include "Log.h"
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
@@ -68,7 +70,8 @@ void CPUstats::get_jiffies(int current_work_jiffies[], int current_total_jiffies
  * Calculate the CPU utilisation between now and the last time this function
  * or the constructor was called.
  *
- * @return utilisation
+ * @return utilisation.  The calling function has responsibility for
+ *                       deleting this.
  */
 int * CPUstats::get_cpu_utilisation()
 {
@@ -91,6 +94,26 @@ int * CPUstats::get_cpu_utilisation()
     previous_total_jiffies = current_total_jiffies;
 
     return utilisation;
+}
+
+/**
+ * Write CPU utilisation data to the log
+ */
+void CPUstats::log()
+{
+    int * cpu_utilisation = get_cpu_utilisation();
+
+    Log * log = LogSingleton::get_instance();
+
+    for (int cpu_line=0; cpu_line < num_cpu_lines; cpu_line++) {
+        if (cpu_line==0) {
+            log->log("CPUav", cpu_utilisation[cpu_line], "%");
+        } else {
+            log->log("CPU", cpu_line, cpu_utilisation[cpu_line], "%");
+        }
+    }
+
+    delete [] cpu_utilisation;
 }
 
 /**

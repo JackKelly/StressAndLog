@@ -10,15 +10,16 @@
 #include <iostream>
 #include <string>
 #include "WattsUp.h"
+#include "Log.h"
 
 using namespace std;
 
 WattsUp::WattsUp()
 {
-    openDevice();
+    open_device();
     cout << "Successfully established a serial connection." << endl;
-    sendInitCommand();
-    initialiseResponse();
+    send_init_command();
+    initialise_response();
 }
 
 WattsUp::~WattsUp()
@@ -26,7 +27,7 @@ WattsUp::~WattsUp()
     wattsUpSerialPort.Close();
 }
 
-void WattsUp::initialiseResponse()
+void WattsUp::initialise_response()
 {
     response[0].name = "params";
     response[1].name = "watts*10";  // Tenths of Watts
@@ -56,7 +57,7 @@ void WattsUp::initialiseResponse()
 /**
  * Open serial connection
  */
-void WattsUp::openDevice()
+void WattsUp::open_device()
 {
     wattsUpSerialPort.Open("/dev/ttyUSB0", std::ios_base::in | std::ios_base::out);
     if ( ! wattsUpSerialPort.good() ) {
@@ -103,7 +104,7 @@ void WattsUp::openDevice()
         exit(1);
     }
 }
-void WattsUp::sendInitCommand()
+void WattsUp::send_init_command()
 {
     // send command to tell the meter to send data every second
     cout << "Sending command \"#C,W,18,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1;\" to wattsup to tell it to send us every parameter" << endl;
@@ -120,14 +121,19 @@ void WattsUp::sendInitCommand()
  *
  * @returns Current number of Watts*10
  */
-int WattsUp::getDeciWatts()
+int WattsUp::get_deci_watts()
 {
-    getResponse();
+    get_response();
 
     return response[1].value;
 }
 
-void WattsUp::getResponse()
+void WattsUp::log()
+{
+    LogSingleton::get_instance()->log("deciWatts", get_deci_watts());
+}
+
+void WattsUp::get_response()
 {
     //TODO 2 second timer
 
@@ -145,7 +151,7 @@ void WattsUp::getResponse()
         if ( ! wattsUpSerialPort.good() ) {
             cout << "Serial connection failed... reconnecting..." << endl;
             wattsUpSerialPort.Close();
-            openDevice();
+            open_device();
             wattsUpSerialPort >> c;
             continue;
         }

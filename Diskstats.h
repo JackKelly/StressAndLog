@@ -11,17 +11,19 @@
 #include <fstream>
 #include <sys/time.h>
 #include "Singleton.h"
+#include "Sensor.h"
 
 using namespace std;
 
-class Diskstats {
+class Diskstats : public Sensor {
 public:
     Diskstats();
     ~Diskstats();
     int * get_utilisation();
     int get_num_disks();
+    virtual void log();
 private:
-    void read_diskstats(int diskstats[]);
+    int * read_diskstats();
 
     fstream* open_diskstats();
 
