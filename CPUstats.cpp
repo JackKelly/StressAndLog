@@ -163,6 +163,9 @@ int CPUstats::discover_num_cpu_lines()
     stat->close();
     delete stat;
 
+    cout << "INFO: Detected " << _num_cpu_lines-1 << " logical CPU"
+         << (_num_cpu_lines > 2 ? "s" : "") << "." << endl;
+
     return _num_cpu_lines;
 }
 

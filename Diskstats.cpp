@@ -193,6 +193,9 @@ int Diskstats::discover_num_disks()
     dstatsfile->close();
     delete dstatsfile;
 
+    cout << "INFO: Detected " << num_disks
+         << " physical disk" << (num_disks > 1 ? "s" : "") << " installed." << endl;
+
     return num_disks;
 }
 
