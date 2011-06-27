@@ -70,8 +70,8 @@ void CPUstats::get_jiffies(int current_work_jiffies[], int current_total_jiffies
  * Calculate the CPU utilisation between now and the last time this function
  * or the constructor was called.
  *
- * @return utilisation.  The calling function has responsibility for
- *                       deleting this.
+ * @return utilisation array, one entry for each logical CPU.
+ *         The calling function has responsibility for deleting this.
  */
 int * CPUstats::get_cpu_utilisation()
 {

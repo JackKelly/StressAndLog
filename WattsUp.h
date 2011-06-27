@@ -27,12 +27,25 @@ public:
 
 private:
 
+    /***************************
+     *   Member functions      *
+     ***************************/
+    void open_device();
+
+    void initialise_response();
+
+    void get_response();
+
+    void send_init_command();
+
+    /***************************
+     *   Member variables      *
+     ***************************/
+
     /**
      * for /dev/ttyUSB0
      */
     LibSerial::SerialStream wattsUpSerialPort;
-
-    void open_device();
 
     struct pair {
         string name;
@@ -40,12 +53,6 @@ private:
     };
 
     pair response[MAX_PARAMS+1];
-
-    void initialise_response();
-
-    void get_response();
-
-    void send_init_command();
 };
 
 typedef Singleton<WattsUp> WattsUpSingleton;

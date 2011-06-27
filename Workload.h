@@ -39,6 +39,18 @@ public:
     Workload();
 
 private:
+
+    /***************************
+     *   Member functions      *
+     ***************************/
+    void run_workload();
+
+    char const * i_to_c(const int i, const bool s=false);
+
+    /***************************
+     *   Member variables      *
+     ***************************/
+
     int counter;
     int permutations;
     bool fin;
@@ -53,10 +65,6 @@ private:
      * Stores last known config
      */
     struct Workload_config * current_workload;
-
-    void run_workload();
-
-    char const * i_to_c(const int i, const bool s=false);
 };
 
 /**
@@ -70,8 +78,10 @@ struct Workload::Workload_config
 
     Workload_config() {}
     explicit Workload_config(const int _cpu, const int _io, const int _vm,
-                    const int _vm_bytes, const int _hdd, const int _timeout, const string _filename_base, const time_t _start_time) :
-        cpu(_cpu), io(_io), vm(_vm), vm_bytes(_vm_bytes), hdd(_hdd), timeout(_timeout), filename_base(_filename_base), start_time(_start_time) {}
+                    const int _vm_bytes, const int _hdd, const int _timeout,
+                    const string _filename_base, const time_t _start_time) :
+        cpu(_cpu), io(_io), vm(_vm), vm_bytes(_vm_bytes), hdd(_hdd),
+        timeout(_timeout), filename_base(_filename_base), start_time(_start_time) {}
 
     friend ostream& operator<<(ostream& o, const Workload_config& wc);
 };

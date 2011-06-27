@@ -186,6 +186,7 @@ void Workload::run_workload()
     }
     else { // fork failed
         // TODO handle fork failure more gracefully
+        cerr << "ERROR: Fork failed" << endl;
         exit(1);
     }
 }

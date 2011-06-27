@@ -32,6 +32,11 @@ Diskstats::~Diskstats()
     prev_time = 0;
 }
 
+/**
+ * Get calendar time
+ *
+ * @return current calendar time
+ */
 timeval * Diskstats::get_time()
 {
     timeval * tv = new timeval;
@@ -45,11 +50,13 @@ timeval * Diskstats::get_time()
 /**
  * Finds the number of milliseconds spent doing IO for each disk.
  *
- * Function returns the 10th column of the /proc/diskstats file for each disk
+ * Returns the 10th column of the /proc/diskstats file for each disk
  * For details of what each column in /proc/diskstats means, check
  * http://www.mjmwired.net/kernel/Documentation/iostats.txt
  *
  * It's the caller's responsibility to delete the returned array
+ *
+ * @return array of diskstats, 1 entry for each disk
  *
  */
 int * Diskstats::read_diskstats()
@@ -157,6 +164,11 @@ fstream* Diskstats::open_diskstats()
     return dstatsfile;
 }
 
+/**
+ * Read /proc/stat and figure out how many physical disks are installed
+ *
+ * @return number of physical disks installed
+ */
 int Diskstats::discover_num_disks()
 {
     fstream * dstatsfile = open_diskstats();
@@ -184,11 +196,17 @@ int Diskstats::discover_num_disks()
     return num_disks;
 }
 
+/**
+ * Return the number of disks installed
+ */
 int Diskstats::get_num_disks()
 {
     return num_disks;
 }
 
+/**
+ * Send disk stats to the logs
+ */
 void Diskstats::log()
 {
     int * disk_utilisation = get_utilisation();

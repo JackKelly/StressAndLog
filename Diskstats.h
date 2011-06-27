@@ -23,6 +23,10 @@ public:
     int get_num_disks();
     virtual void log();
 private:
+    /***************************
+     *   Member functions      *
+     ***************************/
+
     int * read_diskstats();
 
     fstream* open_diskstats();
@@ -33,6 +37,13 @@ private:
 
     int get_msecs_elapsed();
 
+    /***************************
+     *   Member variables      *
+     ***************************/
+
+    /**
+     * The number of physical disks installed on hdX / sdX
+     */
     int num_disks;
 
     int * prev_diskstats;

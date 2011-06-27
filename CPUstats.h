@@ -14,7 +14,7 @@
 #include "Sensor.h"
 
 /**
- * Singleton class for returning CPU utilisation stats
+ * Singleton class responsible for returning CPU utilisation stats
  */
 class CPUstats : public Sensor {
 public:
@@ -25,9 +25,17 @@ public:
     virtual void log();
 
 private:
+    /***************************
+     *   Member functions      *
+     ***************************/
+
     void get_jiffies(int current_work_jiffies[], int current_total_jiffies[]);
     std::fstream * open_stat();
     int discover_num_cpu_lines();
+
+    /***************************
+     *   Member variables      *
+     ***************************/
 
     /**
      * The number of lines in /proc/stat with "cpu" as the first column.
