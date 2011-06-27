@@ -29,14 +29,17 @@ class Workload
 {
 public:
 
+    Workload();
+    ~Workload();
+
     /**
      * Call next workload
      */
     struct Workload_config;
     void next();
-    int * set_workload_config(struct Workload::Workload_config * );
+    int * set_workload_config(struct Workload::Workload_config *
+                              ,const bool _run_every_permutation);
     bool finished();
-    Workload();
 
 private:
 
@@ -46,6 +49,20 @@ private:
     void run_workload();
 
     char const * i_to_c(const int i, const bool s=false);
+
+    void inc_current_workload_every();
+
+    void inc_current_workload_perpendicular();
+
+    int calc_num_permutations_full();
+
+    int calc_num_permutations_orthogonal();
+
+    void open_logfile(const string base);
+
+    void calc_num_permutations();
+
+    bool inc_element(int * current, int max);
 
     /***************************
      *   Member variables      *
@@ -65,6 +82,16 @@ private:
      * Stores last known config
      */
     struct Workload_config * current_workload;
+
+    /**
+     * Should we run every single permutation?
+     * If set to TRUE then we will run every permutation
+     * else we'll run each parameter on its own, up to the
+     * maximum defined by the workload_config
+     */
+    bool run_every_permutation;
+
+    enum {HDD, VM, IO, CPU} turn;
 };
 
 /**

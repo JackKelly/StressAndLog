@@ -20,44 +20,48 @@ Workload::Workload() :
         fin(false),
         workload_config(NULL),
         current_workload(NULL)
-{ }
+{}
 
-/**
- * Set the workload config options
- * @param _workload_config - a pointer to a Workload_config structure
- *                           specifying the set of jobs we want to run
- * @return the address of the counter (which keeps track of which job we're currently running.
- *                           This is useful for the log
- */
-int* Workload::set_workload_config(struct Workload::Workload_config * _workload_config) {
-    workload_config = _workload_config;
+Workload::~Workload(){
+    delete workload_config;
+}
+
+int Workload::calc_num_permutations_full()
+{
+    int p;
 
     // Calculate how many different permutations we're going to run
-    permutations  = (workload_config->cpu ? (workload_config->cpu + 1) : 1);
-    permutations *= (workload_config->io  ? (workload_config->io  + 1) : 1);
-    permutations *= (workload_config->vm  ? (workload_config->vm  + 1) : 1);
-    permutations *= (workload_config->hdd ? (workload_config->hdd + 1) : 1);
-    permutations--; // because we can't run 'stress' with all zeros
+    p  = (workload_config->cpu ? (workload_config->cpu + 1) : 1);
+    p *= (workload_config->io  ? (workload_config->io  + 1) : 1);
+    p *= (workload_config->vm  ? (workload_config->vm  + 1) : 1);
+    p *= (workload_config->hdd ? (workload_config->hdd + 1) : 1);
+    p--; // because we can't run 'stress' with all zeros
 
-    cout << "Initialised workload_config.  Total permutations = " << permutations << endl;
+    return p;
+}
 
-    int runtime = permutations*workload_config->timeout;
-    cout << "Estimated runtime = " << runtime/60   << "mins" << endl;
+int Workload::calc_num_permutations_orthogonal()
+{
+    int p;
 
-    // Now initialise 'current_workload' to all zeros
-    current_workload = new Workload_config(0,0,0,0,0,0,"",time(NULL));
+    // Calculate how many different permutations we're going to run
+    p  = workload_config->cpu;
+    p += (workload_config->io  ? (workload_config->io  + 1) : 0);
+    p += (workload_config->vm  ? (workload_config->vm  + 1) : 0);
+    p += (workload_config->hdd ? (workload_config->hdd + 1) : 0);
+    p--; // because we can't run 'stress' with all zeros
 
-    // Set the constant values in current_config
-    current_workload->vm_bytes = workload_config->vm_bytes;
-    current_workload->timeout  = workload_config->timeout;
+    return p;
+}
 
-    // Create log file
+void Workload::open_logfile(const string base)
+{
     string filename = "workload-log-";
-    filename.append( workload_config->filename_base );
+    filename.append( base );
     filename.append( ".txt" );
     workload_log.open( filename.c_str(), fstream::out | fstream::app);
     if ( ! workload_log.good() ) {
-        cerr << "Failed to open workload log." << endl;
+        cerr << "ERROR: Failed to open workload log." << endl;
         exit(1);
     }
 
@@ -72,6 +76,52 @@ int* Workload::set_workload_config(struct Workload::Workload_config * _workload_
                  << "timeout"
                  << endl;
     workload_log.flush();
+}
+
+void Workload::calc_num_permutations()
+{
+    if ( run_every_permutation ) {
+        permutations = calc_num_permutations_full();
+    } else {
+        permutations = calc_num_permutations_orthogonal();
+    }
+
+    cout << "INFO: Initialised workload_config. Running "
+         << (run_every_permutation ? "every permutation" : "orthogonally")
+         << ". Number of permutations = " << permutations << endl;
+
+    int runtime = permutations*workload_config->timeout;
+    cout << "INFO: Estimated runtime = " << runtime/60  << "mins." << endl;
+}
+
+/**
+ * Set the workload config options
+ * @param _workload_config - a pointer to a Workload_config structure
+ *                           specifying the set of jobs we want to run
+ * @param _run_every_permutation - should we run every single permutation
+ *                           or should we run orthogonally?
+ * @return the address of the counter (which keeps track of which job we're currently running.
+ *                           This is useful for the log
+ */
+int* Workload::set_workload_config(struct Workload::Workload_config * _workload_config
+                                  ,const bool _run_every_permutation)
+{
+
+    run_every_permutation = _run_every_permutation;
+    workload_config = _workload_config;
+    turn = HDD;
+
+    calc_num_permutations();
+
+    // Now initialise 'current_workload' to all zeros
+    current_workload = new Workload_config(0,0,0,0,0,0,"",time(NULL));
+
+    // Set the constant values in current_config
+    current_workload->vm_bytes = workload_config->vm_bytes;
+    current_workload->timeout  = workload_config->timeout;
+
+    // Create log file
+    open_logfile( workload_config->filename_base );
 
     return &counter; // return the address of the counter so we can keep track
 }
@@ -97,12 +147,14 @@ char const * Workload::i_to_c(const int i, const bool s)
 }
 
 /**
- * Run a workload.  The main responsibility of this function is to prepare the arguments for
+ * Run a workload specified by current_workload.
+ *
+ * The main responsibility of this function is to prepare the arguments for
  * the command-line utility "stress" and to run "stress".
  */
 void Workload::run_workload()
 {
-    cout << "Running workload #" << counter << "/" << permutations << ": "
+    cout << "INFO: Running workload #" << counter << "/" << permutations << ": "
          << *current_workload << endl
          << "Estimated time remaining="
          << ((permutations-counter)*workload_config->timeout) << "s" << endl;
@@ -191,14 +243,8 @@ void Workload::run_workload()
     }
 }
 
-/**
- * Run the next workload
- * The main task here is to increment the current_workload structure ready
- * for passing to run_workload
- */
-void Workload::next()
+void Workload::inc_current_workload_every()
 {
-
     if (current_workload->hdd < workload_config->hdd) {
         current_workload->hdd++;
     } else if (current_workload->vm < workload_config->vm) {
@@ -215,12 +261,75 @@ void Workload::next()
         current_workload->cpu++;
     } else {
         fin = true;
-        workload_log.close();
+    }
+}
+
+bool Workload::inc_element(int * current, int max)
+{
+    bool carry;
+
+    if ( *current < max ) {
+        (*current)++;
+        carry = false;
+    } else {
+        *current = 0;
+        carry = true;
+    }
+
+    return carry;
+}
+
+void Workload::inc_current_workload_perpendicular()
+{
+    bool carry = false;
+
+    switch (turn) {
+    case HDD:
+        carry = inc_element(&current_workload->hdd, workload_config->hdd);
+        if ( ! carry )
+            break;
+        else
+            turn = VM;
+    case VM:
+        carry = inc_element(&current_workload->vm, workload_config->vm);
+        if ( ! carry )
+            break;
+        else
+            turn = IO;
+    case IO:
+        carry = inc_element(&current_workload->io, workload_config->io);
+        if ( ! carry )
+            break;
+        else
+            turn = CPU;
+    case CPU:
+        carry = inc_element(&current_workload->cpu, workload_config->cpu);
+        if ( ! carry )
+            break;
+        else
+            fin = true;
+    }
+}
+
+/**
+ * Run the next workload
+ * The main task here is to increment the current_workload structure ready
+ * for passing to run_workload
+ */
+void Workload::next()
+{
+
+    if ( run_every_permutation) {
+        inc_current_workload_every();
+    } else {
+        inc_current_workload_perpendicular();
     }
 
     if ( ! fin ) {
         counter++;
         run_workload();
+    } else {
+        workload_log.close();
     }
 }
 

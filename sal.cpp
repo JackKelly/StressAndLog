@@ -83,16 +83,16 @@ int * configure_workload(const string filename_base, const time_t start_time)
     /**
      * Set workload config
      */
-    Workload::Workload_config workload_config;
-    workload_config.cpu=1;
-    workload_config.io=0;
-    workload_config.vm=0;
-    workload_config.vm_bytes=128;
-    workload_config.hdd=1;
-    workload_config.timeout=10;
-    workload_config.filename_base = filename_base;
-    workload_config.start_time = start_time;
-    int * workload_number = workload->set_workload_config(&workload_config);
+    Workload::Workload_config * workload_config = new Workload::Workload_config();
+    workload_config->cpu           =   1;
+    workload_config->io            =   0;
+    workload_config->vm            =   0;
+    workload_config->vm_bytes      = 128;
+    workload_config->hdd           =   1;
+    workload_config->timeout       =  10;
+    workload_config->filename_base = filename_base;
+    workload_config->start_time    = start_time;
+    int * workload_number = workload->set_workload_config(workload_config, false);
     return workload_number;
 }
 
