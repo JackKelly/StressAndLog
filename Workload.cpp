@@ -131,7 +131,7 @@ int* Workload::set_workload_config(struct Workload::Workload_config * _workload_
  *
  * @param i = the integer to convert
  * @param s = whether or not we want an 's' at the end
- * @return = the const char * string encoding the number
+ * @return = the const char * string encoding the number. The caller has responsibility for deleting string.
  */
 char const * Workload::i_to_c(const int i, const bool s)
 {
@@ -227,6 +227,13 @@ void Workload::run_workload()
             /* We're a child process so replace our image with 'stress'
              * execvp searches for the program in our path and passes our arguments */
             execvp("stress", (char* const*)argv);
+
+            // Delete the dynamically allocated "char *"s
+            argv_index=0;
+            while(argv[argv_index]) {
+                delete argv[argv_index];
+                argv_index++;
+            }
 
             // Check for errors and handle
             perror("execvp"); /* execvp() only returns on error */
