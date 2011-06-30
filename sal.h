@@ -30,4 +30,6 @@ void log_line(
 
 void log_and_run_workload(const time_t start_time, int * workload_number);
 
+void register_sensors_with_logger();
+
 #endif /* SAL_H_ */

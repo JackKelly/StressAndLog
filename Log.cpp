@@ -96,6 +96,26 @@ void Log::log(const string name, const int id, const int value, const string uni
 }
 
 /**
+ * Add a new sensor for logging
+ *
+ * @param sensor
+ */
+void Log::add_sensor(Sensor* sensor)
+{
+    sensors.push_back( sensor );
+}
+
+/**
+ * Log all the sensors registered by add_sensor
+ */
+void Log::log_sensors() const
+{
+    for (list<Sensor *>::const_iterator it = sensors.begin(); it != sensors.end(); it++ ) {
+        (*it)->log();
+    }
+}
+
+/**
  * Send a new line character to log and to screen
  */
 void Log::endl()

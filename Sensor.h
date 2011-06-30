@@ -9,11 +9,10 @@
 #define SENSOR_H_
 
 /*
- * Interface / base class for all "sensors"
+ * Interface for all "sensors"
  */
 class Sensor {
 public:
-    virtual ~Sensor();
 
     /**
      * Call this function to send relevant data to the log

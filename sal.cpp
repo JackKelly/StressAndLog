@@ -15,6 +15,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <list>
 
 using namespace std;
 
@@ -101,17 +102,10 @@ int * configure_workload(const string filename_base, const time_t start_time)
  */
 void log_line(int * workload_number, time_t start_time)
 {
-    WattsUp * wattsup     = WattsUpSingleton::get_instance();
-    CPUstats * cpu_stats  = CPUstatsSingleton::get_instance();
-    Diskstats * diskstats = DiskstatsSingleton::get_instance();
-    Log * log             = LogSingleton::get_instance();
-
-    wattsup->log();
-    cpu_stats->log();
-    diskstats->log();
-
+    Log * log = LogSingleton::get_instance();
     log->log("Time", (time(NULL) - start_time) );
     log->log("Workload", *workload_number);
+    log->log_sensors();
 
     log->endl();
 }
@@ -135,6 +129,17 @@ void log_and_run_workload(const time_t start_time, int * workload_number)
     }
 }
 
+/**
+ * Register all sensors with logger
+ */
+void register_sensors_with_logger()
+{
+    Log * log = LogSingleton::get_instance();
+    log->add_sensor(WattsUpSingleton::get_instance());
+    log->add_sensor(CPUstatsSingleton::get_instance());
+    log->add_sensor(DiskstatsSingleton::get_instance());
+}
+
 int main(int argc, char* argv[])
 {
     string filename_base = generate_filename();
@@ -144,6 +149,8 @@ int main(int argc, char* argv[])
     time_t start_time = time(NULL);
 
     set_sigchld_handler();
+
+    register_sensors_with_logger();
 
     int * workload_number;
     workload_number = configure_workload(filename_base, start_time);
