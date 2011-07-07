@@ -15,8 +15,6 @@
 #include "Singleton.h"
 #include "Sensor.h"
 
-using namespace std;
-
 class WattsUp : public Sensor {
 public:
     WattsUp();
@@ -48,7 +46,7 @@ private:
     LibSerial::SerialStream wattsUpSerialPort;
 
     struct pair {
-        string name;
+        std::string name;
         int    value;
     };
 

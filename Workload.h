@@ -15,8 +15,6 @@
 #include <fstream>
 #include "Singleton.h"
 
-using namespace std;
-
 /**
  * Runs the workloads. Meant to be used as a singleton with the Singleton template.
  *
@@ -58,7 +56,7 @@ private:
 
     int calc_num_permutations_orthogonal();
 
-    void open_logfile(const string base);
+    void open_logfile(const std::string base);
 
     void calc_num_permutations();
 
@@ -71,7 +69,7 @@ private:
     int counter;
     int permutations;
     bool fin;
-    fstream workload_log;
+    std::fstream workload_log;
 
     /**
      * This structure stores the maximums for each config option
@@ -100,17 +98,17 @@ private:
 struct Workload::Workload_config
 {
     int cpu, io, vm, vm_bytes, hdd, timeout;
-    string filename_base;
+    std::string filename_base;
     time_t start_time;
 
     Workload_config() {}
     explicit Workload_config(const int _cpu, const int _io, const int _vm,
                     const int _vm_bytes, const int _hdd, const int _timeout,
-                    const string _filename_base, const time_t _start_time) :
+                    const std::string _filename_base, const time_t _start_time) :
         cpu(_cpu), io(_io), vm(_vm), vm_bytes(_vm_bytes), hdd(_hdd),
         timeout(_timeout), filename_base(_filename_base), start_time(_start_time) {}
 
-    friend ostream& operator<<(ostream& o, const Workload_config& wc);
+    friend std::ostream& operator<<(std::ostream& o, const Workload_config& wc);
 };
 
 typedef Singleton<Workload> WorkloadSingleton;

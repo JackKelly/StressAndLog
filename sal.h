@@ -12,15 +12,13 @@
 #include "WattsUp.h"
 #include "Diskstats.h"
 
-using namespace std;
-
 void sigchld_handler(int signum);
 
 void set_sigchld_handler();
 
-string generate_filename();
+std::string generate_filename();
 
-int * configure_workload(const string filename_base, const time_t start_time);
+int * configure_workload(const std::string filename_base, const time_t start_time);
 
 void log_line(
                WattsUp& wu    /**< watts up object */

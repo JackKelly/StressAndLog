@@ -13,8 +13,6 @@
 #include "Singleton.h"
 #include "Sensor.h"
 
-using namespace std;
-
 class Diskstats : public Sensor {
 public:
     Diskstats();
@@ -29,7 +27,7 @@ private:
 
     int * read_diskstats();
 
-    fstream* open_diskstats();
+    std::fstream* open_diskstats();
 
     int discover_num_disks();
 
