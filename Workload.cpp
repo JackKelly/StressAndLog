@@ -229,11 +229,12 @@ void Workload::run_workload()
             execvp("stress", (char* const*)argv);
 
             // Delete the dynamically allocated "char *"s
-            argv_index=0;
+/*            argv_index=0;
             while(argv[argv_index]) {
                 delete argv[argv_index];
                 argv_index++;
             }
+*/
 
             // Check for errors and handle
             perror("execvp"); /* execvp() only returns on error */

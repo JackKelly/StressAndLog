@@ -1,0 +1,8 @@
+A simple little command-line app to stress a Linux computer whilst symaltaneously logging power consumption and utilisation.
+
+DEPENDENCIES:
+stress
+http://weather.ou.edu/~apw/projects/stress/
+
+WattsUp? meter
+https://www.wattsupmeters.com
